@@ -1,6 +1,6 @@
 package com.company.database;
 
-import com.company.DomainKeys;
+import com.company.keystructure.DomainKeys;
 
 public class DatabaseEntry {
     int id;

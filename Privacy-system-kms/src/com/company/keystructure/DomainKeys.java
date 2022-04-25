@@ -1,10 +1,12 @@
-package com.company;
+package com.company.keystructure;
+
+import com.company.keystructure.Token;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * <pre>
+ *<pre>
  *
  *Enc(K,D) -> cipher of D by using K
  *MK is the master key to be protected
@@ -20,10 +22,10 @@ import javax.crypto.spec.SecretKeySpec;
  *</pre>
  **/
 public class DomainKeys {
-    private SecretKey masterKeyToken;
-    private SecretKey[] tokenKeys;
+    private Token masterKeyToken;
+    private Token[] tokenKeys;
 
-    public DomainKeys(SecretKey masterKeyToken, SecretKey[] tokenKeys) {
+    public DomainKeys(Token masterKeyToken, Token[] tokenKeys) {
         this.masterKeyToken = masterKeyToken;
         this.tokenKeys = tokenKeys;
     }
@@ -32,11 +34,7 @@ public class DomainKeys {
         return new SecretKeySpec(key,algorithm);
     }
 
-    public SecretKey[] getTokenKey() {
+    public Token[] getTokenKey() {
         return tokenKeys;
-    }
-
-    public void setTokenKey(SecretKey[] tokenKey) {
-        this.tokenKeys = tokenKeys;
     }
 }
