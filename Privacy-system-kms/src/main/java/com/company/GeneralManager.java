@@ -504,7 +504,7 @@ public class GeneralManager {
             header.add("Quorum");
             content.add(String.valueOf(trustContent.getQuorumMinValue()));
             header.add("Predecessor hash");
-            content.add("placeholder");
+            content.add(" ");
 
 
             row = at.addRow(header);
