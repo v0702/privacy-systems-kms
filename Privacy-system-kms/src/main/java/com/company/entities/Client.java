@@ -51,7 +51,7 @@ public class Client extends UnicastRemoteObject implements ClientInterface {
     }
 
     private void writeFile(String content) throws Exception {
-        System.out.print("Type file name: ");
+        System.out.print("Type new file name(with path): ");
         String fileName = readInput.next();
 
         FileWriter fileWriter = new FileWriter(fileName);

@@ -235,10 +235,12 @@ public class HardwareSecurityModule extends CryptographyOperations {
      */
     public GeneralSignature signWithDomain(byte[] data, Domain domain) {
         if(!verifyDomainSignature(domain)) {
+            System.out.println("Domain signature not valid.");
             return null;
         }
 
         if(!verifyTrustSignature(domain.domainContent().trust())) {
+            System.out.println("Domain trust signature not valid.");
             return null;
         }
 
@@ -247,8 +249,10 @@ public class HardwareSecurityModule extends CryptographyOperations {
             byte[] signatureByte = signData(data, keyPair.getPrivate());
             return new GeneralSignature(signatureByte, keyPair.getPublic());
         }
-        else
+        else {
+            System.out.println("Key pair not valid.");
             return null;
+        }
     }
 
     /*---------------------------------------------------------------------------------------------*/

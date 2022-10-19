@@ -326,7 +326,7 @@ public class CryptographyOperations {
         return Base64.getEncoder().encodeToString(byteArrayData);
     }
 
-    public static byte[] base64ToString(String base64String) {
+    public static byte[] base64ToByte(String base64String) {
         return Base64.getDecoder().decode(base64String);
     }
 

@@ -134,7 +134,7 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
 
     public byte[] decryptWithDomain(String encryptedDataBase64, int domainId) {
         System.out.println(">Decrypt with domain");
-        return generalManager.decryptWithDomain(CryptographyOperations.base64ToString(encryptedDataBase64), domainId);
+        return generalManager.decryptWithDomain(CryptographyOperations.base64ToByte(encryptedDataBase64), domainId);
     }
 
     /*---------------------------------------------------------------------------------------------*/
