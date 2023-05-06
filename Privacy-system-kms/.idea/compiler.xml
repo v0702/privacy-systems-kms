@@ -9,8 +9,5 @@
         <module name="kms" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="kms" target="17" />
-    </bytecodeTargetLevel>
   </component>
 </project>

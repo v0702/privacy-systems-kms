@@ -1,23 +1,64 @@
+# Created by https://www.toptal.com/developers/gitignore/api/intellij,java
+# Edit at https://www.toptal.com/developers/gitignore?templates=intellij,java
+
+### Intellij ###
+# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
+# Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+
+# User-specific stuff
+Privacy-system-kms/.idea/**/workspace.xml
+Privacy-system-kms/.idea/**/tasks.xml
+Privacy-system-kms/.idea/**/usage.statistics.xml
+Privacy-system-kms/.idea/**/dictionaries
+Privacy-system-kms/.idea/**/shelf
+
+# Generated files
+Privacy-system-kms/.idea/**/contentModel.xml
+
+# Sensitive or high-churn files
+Privacy-system-kms/.idea/**/dataSources/
+Privacy-system-kms/.idea/**/dataSources.ids
+Privacy-system-kms/.idea/**/dataSources.local.xml
+Privacy-system-kms/.idea/**/sqlDataSources.xml
+Privacy-system-kms/.idea/**/dynamic.xml
+Privacy-system-kms/.idea/**/uiDesigner.xml
+Privacy-system-kms/.idea/**/dbnavigator.xml
+
+# Gradle
+Privacy-system-kms/.idea/**/gradle.xml
+Privacy-system-kms/.idea/**/libraries
+
+# File-based project format
+Privacy-system-kms/*.iws
+
+# IntelliJ
+Privacy-system-kms/out/
+
+# mpeltonen/sbt-idea plugin
+Privacy-system-kms/.idea_modules/
+
+Privacy-system-kms/.idea/$CACHE_FILE$
+
+# CodeStream plugin
+# https://plugins.jetbrains.com/plugin/12206-codestream
+Privacy-system-kms/.idea/codestream.xml
+
+# Azure Toolkit for IntelliJ plugin
+# https://plugins.jetbrains.com/plugin/8053-azure-toolkit-for-intellij
+Privacy-system-kms/.idea/**/azureSettings.xml
+
+### Java ###
 # Compiled class file
-*.class
+Privacy-system-kms/*.class
 
 # Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+Privacy-system-kms/*.log
 
 # Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
+Privacy-system-kms/*.jar
+Privacy-system-kms/*.war
+Privacy-system-kms/*.nar
+Privacy-system-kms/*.ear
+Privacy-system-kms/*.zip
+Privacy-system-kms/*.tar.gz
+Privacy-system-kms/*.rar
