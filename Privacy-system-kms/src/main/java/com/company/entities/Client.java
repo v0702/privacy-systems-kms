@@ -2,10 +2,13 @@ package com.company.entities;
 
 import com.company.interfaces.ClientInterface;
 import com.company.interfaces.ServerInterface;
+import com.company.utility.CryptographyOperations;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.net.InetAddress;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -36,24 +39,18 @@ public class Client extends UnicastRemoteObject implements ClientInterface {
         return clientName;
     }
 
-    private String readFile() throws Exception {
-        System.out.print("Type file path: ");
-        String filePath = readInput.next();
-
+    private String readFile(String filePath) throws Exception {
         File file = new File(filePath);
         Scanner fileReader = new Scanner(file);
 
         StringBuilder fileContent = new StringBuilder();
         while (fileReader.hasNextLine())
-            fileContent.append(fileReader.nextLine()).append("\n");
+            fileContent.append(fileReader.nextLine());
 
         return fileContent.toString();
     }
 
-    private void writeFile(String content) throws Exception {
-        System.out.print("Type new file name(with path): ");
-        String fileName = readInput.next();
-
+    private void writeFile(String content, String fileName) throws Exception {
         FileWriter fileWriter = new FileWriter(fileName);
         fileWriter.write(content);
         fileWriter.close();
@@ -61,26 +58,29 @@ public class Client extends UnicastRemoteObject implements ClientInterface {
 
     private void encryptWithDomain() {
         try {
-            String fileContent = readFile();
+            String fileContent = readFile("/home/victor/test.txt");
 
-            String encryptedData = server.encryptWithDomain(fileContent.getBytes(), this.domainId);
+            String base64EncryptedData = server.encryptWithDomain(fileContent.getBytes(StandardCharsets.UTF_8), this.domainId);
 
-            writeFile(encryptedData);
+            writeFile(base64EncryptedData,"/home/victor/test.enc");
+        } catch (RemoteException e) {
+            System.out.println("Error remote: " + e.getMessage());
         } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("Error client I/O (" + e.getLocalizedMessage() + "): " + e.getMessage());
         }
     }
 
     private void decryptWithDomain() {
         try {
-            String base64FileContent = readFile();
+            String base64FileContent = readFile("/home/victor/test.enc");
 
             byte[] data = server.decryptWithDomain(base64FileContent, this.domainId);
-            String content = new String(data);
-
-            writeFile(content);
+            String content = new String(data,StandardCharsets.UTF_8);
+            writeFile(content,"/home/victor/test.dec");
+        } catch (RemoteException e) {
+            System.out.println("Error remote: " + e.getMessage());
         } catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("Error unknown: " + e.getMessage());
         }
     }
 

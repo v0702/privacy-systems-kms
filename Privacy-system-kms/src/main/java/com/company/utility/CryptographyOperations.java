@@ -8,12 +8,13 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 
 /**
- * General usage Cryptographic and Hashing functions
+ * General usage Cryptographic and Hashing functions.
  */
 public class CryptographyOperations {
 
@@ -55,7 +56,7 @@ public class CryptographyOperations {
             System.arraycopy(cipherBytes,0,finalCipher,ivParameterSpec.getIV().length,cipherBytes.length);
             return finalCipher;
         } catch (Exception e) {
-            System.out.println("Error encrypting data (AES): " + e.getMessage());
+            System.err.println("-> Exception: Error encrypting data (AES): " + e.getMessage());
             return null;
         }
     }
@@ -73,7 +74,7 @@ public class CryptographyOperations {
             cipher.init(Cipher.DECRYPT_MODE, key, ivParameterSpec);
             return cipher.doFinal(encryptedData,BOCK_SIZE,encryptedData.length - BOCK_SIZE);
         } catch (Exception e) {
-            System.out.println("Error decrypting data (AES): " + e.getMessage());
+            System.err.println("-> Exception: Error decrypting data (AES): " + e.getMessage());
             return null;
         }
     }
@@ -107,7 +108,7 @@ public class CryptographyOperations {
             return cipher.doFinal(data);
         }
         catch (Exception e){
-            System.out.println("Error encrypting data (RSA): " + e.getMessage());
+            System.err.println("-> Exception: Error encrypting data (RSA): " + e.getMessage());
             return null;
         }
     }
@@ -127,7 +128,7 @@ public class CryptographyOperations {
             return cipher.doFinal(encryptedData);
         }
         catch (Exception e){
-            System.out.println("Error decrypting data (RSA): " + e.getMessage());
+            System.err.println("-> Exception: Error decrypting data (RSA): " + e.getMessage());
             return null;
         }
     }
@@ -148,7 +149,7 @@ public class CryptographyOperations {
             return signer.sign();
         }
         catch (Exception e){
-            System.out.println("Error signing data (RSA): " + e.getMessage());
+            System.err.println("-> Exception: Error signing data (RSA): " + e.getMessage());
             return null;
         }
     }
@@ -170,7 +171,7 @@ public class CryptographyOperations {
             return signer.verify(signature);
         }
         catch (Exception e){
-            System.out.println("Error checking signature data (RSA): " + e.getMessage());
+            System.err.println("-> Exception: Error checking signature data (RSA): " + e.getMessage());
             return false;
         }
     }
@@ -191,7 +192,7 @@ public class CryptographyOperations {
             messageDigestInstance.update(data);
             return messageDigestInstance.digest();
         } catch (Exception e) {
-            System.out.println("Error creating hash: " + e.getMessage());
+            System.err.println("-> Exception: Error creating hash: " + e.getMessage());
             return null;
         }
     }
@@ -206,12 +207,14 @@ public class CryptographyOperations {
      * @return SecretKey randomly generated
      */
     protected SecretKey generateKey(int keySize, String algorithm){
+
+
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance(algorithm);
             keyGen.init(keySize,random);
             return keyGen.generateKey();
         } catch (Exception e) {
-            System.out.println("Error generating key: " + e.getMessage());
+            System.err.println("-> Exception: Error generating key: " + e.getMessage());
             return null;
         }
     }
@@ -228,7 +231,7 @@ public class CryptographyOperations {
             keyGen.initialize(keySize,random);
             return keyGen.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
-            System.out.println("Error generating key pair: " + e.getMessage());
+            System.err.println("-> Exception: Error generating key pair: " + e.getMessage());
             return null;
         }
     }
@@ -297,7 +300,7 @@ public class CryptographyOperations {
             oos.close();
             return byteArray;
         } catch (Exception e){
-            System.out.println("objectToByte - Error getting object to byte array: " + e.getMessage());
+            System.err.println("-> Exception: objectToByte - Error getting object to byte array: " + e.getMessage());
             return null;
         }
     }
@@ -309,8 +312,8 @@ public class CryptographyOperations {
             byte[] hash = messageDigestInstance.digest();
             return encodeHexString(hash);
         } catch (Exception e) {
-            System.out.println("Error creating hash: " + e.getMessage());
-            return "**ERROR**";
+            System.err.println("-> Exception: Error creating hash: " + e.getMessage());
+            return "**ERROR**"; //TODO: FIX
         }
     }
 

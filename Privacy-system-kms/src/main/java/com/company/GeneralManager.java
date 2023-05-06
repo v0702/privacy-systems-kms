@@ -218,16 +218,24 @@ public class GeneralManager {
         //get free hsm that belongs in trust (in this case its just random)
         List<PublicKey> trustHsmPublicKeys = unsignedTrust.getTrustContent().getHsmPublicKeys();
         HardwareSecurityModule hsm = getHsmByPublicKey(trustHsmPublicKeys.get(random.nextInt(trustHsmPublicKeys.size())));
+        if(hsm == null) {
+            System.out.println(">HSM not found.");
+            return false;
+        }
 
         //get hash of trust content
         byte[] hash = hsm.hashSum(CryptographyOperations.objectToByte(unsignedTrust.getTrustContent()), CryptographyOperations.HASH_ALGORITHM_1);
-        if(hash == null)
+        if(hash == null) {
+            System.out.println(">Hash not created.");
             return false;
+        }
 
         //sign the hash with domain, by unwrapping the master key and using the private key
         GeneralSignature generalSignature = hsm.signWithDomain(hash, domain);
-        if(generalSignature == null)
+        if(generalSignature == null) {
+            System.out.println(">Signature failure.");
             return false;
+        }
 
         operatorsTrustSignatureList.add(new OperatorSignature(generalSignature, trustId));
 

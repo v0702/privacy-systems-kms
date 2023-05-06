@@ -35,9 +35,9 @@ public class HardwareSecurityModule extends CryptographyOperations {
     /*----------------------------------Variables and constructor----------------------------------*/
 
     /**
-     * Types of domains master key that we can have <p>
-     * SYMMETRIC_KEY for AES crypto operations <p>
-     * ASYMMETRIC_KEY for RSA crypto operations
+     * Types of domains master key that we can have:<p>
+     * SYMMETRIC_KEY for AES crypto operations.<p>
+     * ASYMMETRIC_KEY for RSA crypto operations.
      */
     public enum DOMAIN_KEYS_TYPE{
         ASYMMETRIC_KEY_DOMAIN,
@@ -45,22 +45,22 @@ public class HardwareSecurityModule extends CryptographyOperations {
     }
 
     /**
-     * This hardware security module public and private key
+     * This hardware security module public and private key.
      */
     private final KeyPair pair;
 
     /**
-     * This hardware security module iterative id, unique
+     * This hardware security module iterative id, unique.
      */
     private final int id;
 
     /**
-     * This hardware security module word id, unique
+     * This hardware security module word id, unique.
      */
     private final String wordlyIdentifier;
 
     /**
-     *
+     * Constructor for the Hardware Security Module.
      */
     public HardwareSecurityModule(int id, int keySize, String algorithm){
         this.id = id;
@@ -96,8 +96,8 @@ public class HardwareSecurityModule extends CryptographyOperations {
         if(wrapKeyByte == null)// validate the RSA decryption result
             return null;
 
-        SecretKey wrapSecretKey = byteToSecretKey(wrapKeyByte, CryptographyOperations.KEY_GENERATOR_ALGORITHM_AES);
-        byte[] masterKeyByte = decryptAES(masterKeyToken.encryptedKey(), wrapSecretKey);
+        SecretKey wrapKey = byteToSecretKey(wrapKeyByte, CryptographyOperations.KEY_GENERATOR_ALGORITHM_AES);
+        byte[] masterKeyByte = decryptAES(masterKeyToken.encryptedKey(), wrapKey);
         if(masterKeyByte == null)// validate the AES decryption result
             return null;
 
@@ -151,7 +151,9 @@ public class HardwareSecurityModule extends CryptographyOperations {
         if(!verifyDomainSignature(domain) && !verifyTrustSignature(trust) && !trust.getTrustContent().checkExistHardwarePublicKey(this.getPublicKey()))
             return null;
 
-        return encryptAES(data, unwrapSymmetricDomain(domain));
+        SecretKey key = unwrapSymmetricDomain(domain);
+
+        return encryptAES(data, key);
     }
 
     public byte[] decryptWithDomain(byte[] encryptedData, Domain domain) {
@@ -269,6 +271,26 @@ public class HardwareSecurityModule extends CryptographyOperations {
         return new Trust(trustContent, null);
     }
 
+    /**
+     * Check if a trust is valid or not by verifying the signature
+     * @param trust the trust to validate
+     * @return true if signature is valid or false
+     */
+    public boolean verifyTrustSignature(Trust trust) {
+        if(trust.getSignature() == null)// verify signature exists
+            return false;
+
+        PublicKey hsmPublicKey = trust.getSignature().publicKey();
+        if (!trust.getTrustContent().checkExistHardwarePublicKey(hsmPublicKey))// check if public key used for signature is in trust
+            return false;
+
+        byte[] trustDataHash = hashSum(objectToByte(trust.getTrustContent()), HASH_ALGORITHM_1);
+        if(trustDataHash == null)// check if hash is correct
+            return false;
+
+        return checkSignature(trustDataHash, trust.getSignature().signature(), hsmPublicKey);
+    }
+
     /*---------------------------------------------------------------------------------------------*/
     /*----------------------------------------Domain Operations------------------------------------*/
 
@@ -280,7 +302,7 @@ public class HardwareSecurityModule extends CryptographyOperations {
      * @return the domainKeys or null if the trust verification fails
      *
      */
-    public DomainKeys createDomainKeys(Trust trust, DOMAIN_KEYS_TYPE domainType) {
+    private DomainKeys createDomainKeys(Trust trust, DOMAIN_KEYS_TYPE domainType) {
         List<PublicKey> hsmPublicKeysList = trust.getTrustContent().getHsmPublicKeys();
         List<Token> wrapKeyTokenList = new ArrayList<>();
 
@@ -337,6 +359,23 @@ public class HardwareSecurityModule extends CryptographyOperations {
         return new Domain(domainContent, signature, domainId);
     }
 
+    /**
+     * Check signature of a domain, returns false if signature is not valid
+     * or given public key in signature is not in trust
+     * @param domain the domain to validate
+     * @return true if signature is valid or false if not
+     */
+    public boolean verifyDomainSignature(Domain domain) {
+        GeneralSignature domainSignature = domain.signature();
+        byte[] domainContentHash = hashSum(objectToByte(domain.domainContent()), HASH_ALGORITHM_1);
+
+        // check if signature of domain is done by hsm in trust
+        if (!domain.domainContent().trust().getTrustContent().checkExistHardwarePublicKey(domainSignature.publicKey()))
+            return false;
+
+        return checkSignature(domainContentHash, domainSignature);
+    }
+
     /*---------------------------------------------------------------------------------------------*/
     /*-------------------General HSM Operations, sign data and verify signatures-------------------*/
 
@@ -380,44 +419,6 @@ public class HardwareSecurityModule extends CryptographyOperations {
      */
     private boolean checkSignature(byte[] data, GeneralSignature generalSignature) {
         return checkSignatureRSA(data, generalSignature.signature(), generalSignature.publicKey());
-    }
-
-    /**
-     * Check signature of a domain, returns false if signature is not valid
-     * or given public key in signature is not in trust
-     * @param domain the domain to validate
-     * @return true if signature is valid or false if not
-     */
-    public boolean verifyDomainSignature(Domain domain) {
-        GeneralSignature domainSignature = domain.signature();
-        byte[] domainContentHash = hashSum(objectToByte(domain.domainContent()), HASH_ALGORITHM_1);
-
-        // check if signature of domain is done by hsm in trust
-        if (!domain.domainContent().trust().getTrustContent().checkExistHardwarePublicKey(domainSignature.publicKey()))
-            return false;
-
-        return checkSignature(domainContentHash, domainSignature);
-    }
-
-
-    /**
-     * Check if a trust is valid or not by verifying the signature
-     * @param trust the trust to validate
-     * @return true if signature is valid or false
-     */
-    public boolean verifyTrustSignature(Trust trust) {
-        if(trust.getSignature() == null)// verify signature exists
-            return false;
-
-        PublicKey hsmPublicKey = trust.getSignature().publicKey();
-        if (!trust.getTrustContent().checkExistHardwarePublicKey(hsmPublicKey))// check if public key used for signature is in trust
-            return false;
-
-        byte[] trustDataHash = hashSum(objectToByte(trust.getTrustContent()), HASH_ALGORITHM_1);
-        if(trustDataHash == null)// check if hash is correct
-            return false;
-
-        return checkSignature(trustDataHash, trust.getSignature().signature(), hsmPublicKey);
     }
 
     /*---------------------------------------------------------------------------------------------*/
