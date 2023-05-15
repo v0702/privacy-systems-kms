@@ -43,7 +43,7 @@ public class Operator extends UnicastRemoteObject implements OperatorInterface {
         return operatorName;
     }
 
-    private void showSignedTrusts() throws Exception{
+    /*private void showSignedTrusts() throws Exception{
         System.out.println(">Showing signed trusts.");
         String text = server.showSignedTrusts(this.domainId);
         System.out.println(text);
@@ -121,18 +121,6 @@ public class Operator extends UnicastRemoteObject implements OperatorInterface {
 
         server.createNewTrust(hsmIdList, operatorIndexList);
         System.out.println(">Done.");
-    }
-
-    private void operatorSignTrust() throws Exception {
-        showUnsignedTrusts();
-
-        System.out.print("#Type trust id to sign: ");
-        int trustId = readInput.nextInt();
-
-        if(server.operatorSignTrust(trustId, this.domainId))
-            System.out.println(">Success.");
-        else
-            System.out.println(">Failure");
     }
 
     private void signTrust() throws Exception {
@@ -264,12 +252,12 @@ public class Operator extends UnicastRemoteObject implements OperatorInterface {
                     Domain menu
                     1. Show domains
                     2. Show own domain
-                    
+
                     3. Create asymmetric domain
                     4. Create symmetric domain
-                    
+
                     5. verify domain
-                    
+
                     9. Go back
                     """
             );
@@ -294,9 +282,9 @@ public class Operator extends UnicastRemoteObject implements OperatorInterface {
                     Hsm menu
                     1. Show hsm
                     2. Show hsm public key
-                    
+
                     3. Create new hsm
-                    
+
                     9. Go back
                     """
             );
@@ -322,7 +310,7 @@ public class Operator extends UnicastRemoteObject implements OperatorInterface {
                             2. Trust menu
                             3. Domain menu
                             4. Hsm menu
-                            
+
                             20. Go back
                             """
             );
@@ -336,33 +324,54 @@ public class Operator extends UnicastRemoteObject implements OperatorInterface {
                 case 4 -> hsmMenu();
             }
         }
-    }
+    }*/
 
     public static void main(String[] args) {
+
         try {
+            // Get own host ip
             String clientIp = InetAddress.getLocalHost().getHostAddress();
             System.out.println("Operator ip is: " + clientIp);
 
-            System.out.print("Type Server ip: ");
-            String ipServer = readInput.nextLine();
-            if(ipServer.equals(""))
-                ipServer = clientIp;
+            // Get Operator name
+            String operatorName;
+            do {
+                System.out.print("Type operator name: ");
+                operatorName = readInput.nextLine();
+            } while (operatorName.equals(""));
 
-            System.out.print("Type operator name: ");
-            String operatorName = readInput.nextLine();
+            // Setup connection and connect to server
+            Registry registry;
+            ServerInterface server = null;
+            boolean flag = false;
+            do {
+                try {
+                    // Get Server IP
+                    System.out.print("Type Server ip (ENTER uses LocalHost): ");
+                    String ipServer = readInput.nextLine();
+                    if(ipServer.equals(""))
+                        ipServer = clientIp;
 
-            System.setProperty("java.rmi.server.hostname", clientIp);
-            Registry registry = LocateRegistry.getRegistry(ipServer, 1099);
-            ServerInterface server = (ServerInterface) registry.lookup("server");
+                    System.setProperty("java.rmi.server.hostname", clientIp);
+                    registry = LocateRegistry.getRegistry(ipServer, 1099);
+                    server = (ServerInterface) registry.lookup("server");
+                    flag = true;
+                } catch (Exception e) {
+                    System.out.println("-> Exception: Error connecting to server:" + e.getMessage());
+                }
+            } while (!flag);
             System.out.println("*** Connected to server ***");
 
+            // Subscribe Operator
             Operator operator = new Operator(operatorName, server);
             server.subscribeOperator(operator.getOperatorName());
 
-            operator.menu();
+            //TODO: RUN
+
             System.out.println("Exiting...");
+
         }catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.err.println("-> Exception: " + e.getMessage());
             System.out.println("Exiting...");
         }
     }

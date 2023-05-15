@@ -1,6 +1,6 @@
 package com.company.keystructure;
 
-import com.company.GeneralManager;
+import com.company.utility.GeneralManager;
 
 import java.io.Serializable;
 import java.security.PublicKey;
@@ -9,13 +9,17 @@ import java.util.Base64;
 import static com.company.utility.CryptographyOperations.getHashIdentifier;
 
 /**
+ * <p>
+ * Class that defines a Trust.
+ * </p>
  * <pre>
- * ---------------------------------------------------------------------------
- * |_________________________Trust___________________________________________|
- * |                      TrustContent                             |Signature|
- * |_______________________________________________________________|_________|
- * |Identifier|PublicKey1| ... |PublicKey_n|Quorum|Predecessor Hash|
- * |__________|__________|_____|___________|______|________________|
+ * |------------------------------------------------------------------|
+ * |                              Trust                               |
+ * |----------------------------------------------|-------------------|
+ * |                 TrustContent                 |  GeneralSignature |
+ * |----------------------------------------------|-------------------|
+ * |Identifier|PK1|...|PKn|Quorum|Predecessor Hash|signature|PublicKey|
+ * |----------------------------------------------|-------------------|
  * </pre>
  */
 public class Trust implements Serializable {

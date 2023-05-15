@@ -1,6 +1,6 @@
 package com.company.entities;
 
-import com.company.GeneralManager;
+import com.company.utility.GeneralManager;
 import com.company.hsm.HardwareSecurityModule;
 import com.company.interfaces.ServerInterface;
 import com.company.utility.CryptographyOperations;

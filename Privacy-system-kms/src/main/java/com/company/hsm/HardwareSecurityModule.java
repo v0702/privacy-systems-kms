@@ -13,20 +13,17 @@ import java.util.List;
  * And hardware security module that can perform cryptographic operations
  * an also create and verify trusts, and create and unwrap domains.
  * </p>
+ * <p>
+ * Functionalities:
+ *     <ul>
+ *     <li>one</li>
+ *     <li>one</li>
+ *     <li>one</li>
+ *     <li>one</li>
+ * </ul>
+ * </p>
  * <pre>
- * |-------------Domain--------------------|
- * | TrustContent | DomainKeys | Signature |
- * |---------------------------------------|
  *
- * |-------------------------------------------------------------------------|
- * |_________________________Trust___________________________________________|
- * |Identifier|PublicKey1| ... |PublicKey_n|Quorum|Predecessor Hash|Signature|
- * |__________|__________|_____|___________|______|________________|_________|
- *
- * |--------------------------------------------------------|
- * |_______________________DomainKeys_______________________|
- * | Enc(Pk1,K) | Enc(Pk2,K) | ... | Enc(Pki,K) | Enc(K,MK) |
- * |____________|____________|_____|____________|___________|
  * </pre>
  * @author victor
 */
@@ -223,9 +220,13 @@ public class HardwareSecurityModule extends CryptographyOperations {
         }
     }
 
-    public void signFirstTrust(Trust trust) {
-        byte[] hash = hashSum(objectToByte(trust.getTrustContent()), HASH_ALGORITHM_1);
-        trust.setSignature(new GeneralSignature(signData(hash), getPublicKey()));
+    /**
+     *
+     * @param trust
+     */
+    public void signNewTrust(Trust trust) {
+        byte[] hash = hashSum(CryptographyOperations.objectToByte(trust.getTrustContent()), CryptographyOperations.HASH_ALGORITHM_1);
+        trust.setSignature(new GeneralSignature(this.signData(hash), this.getPublicKey()));
     }
 
     /**
@@ -261,34 +262,43 @@ public class HardwareSecurityModule extends CryptographyOperations {
     /*--------------------------------------Trust operations---------------------------------------*/
 
     /**
-     * Create a new unsigned trust
+     * Create a new trust.
      * @param hsmPublicKeysList the list of hsm public keys to add to trust
      * @param operatorPublicKeysList the list of operator public keys to add to trust
      * @return a unsigned trust
      */
     public Trust createTrust(List<PublicKey> hsmPublicKeysList, List<PublicKey> operatorPublicKeysList) {
         TrustContent trustContent = new TrustContent(hsmPublicKeysList,operatorPublicKeysList,new byte[0]);
-        return new Trust(trustContent, null);
+        Trust trust = new Trust(trustContent, null);
+        this.signNewTrust(trust);
+
+        return trust;
+    }
+
+    public void updateTrust() {
+
+        return ;
     }
 
     /**
-     * Check if a trust is valid or not by verifying the signature
-     * @param trust the trust to validate
-     * @return true if signature is valid or false
+     * Check if a trust is valid or not by verifying the signature.
+     * @param trust the trust to validate.
+     * @return true if signature is valid or false.
      */
     public boolean verifyTrustSignature(Trust trust) {
         if(trust.getSignature() == null)// verify signature exists
             return false;
 
+        //TODO: Need to validate the public key in the signature, how do I trust it?
         PublicKey hsmPublicKey = trust.getSignature().publicKey();
         if (!trust.getTrustContent().checkExistHardwarePublicKey(hsmPublicKey))// check if public key used for signature is in trust
             return false;
 
-        byte[] trustDataHash = hashSum(objectToByte(trust.getTrustContent()), HASH_ALGORITHM_1);
+        byte[] trustDataHash = this.hashSum(objectToByte(trust.getTrustContent()), HASH_ALGORITHM_1);
         if(trustDataHash == null)// check if hash is correct
             return false;
 
-        return checkSignature(trustDataHash, trust.getSignature().signature(), hsmPublicKey);
+        return this.checkSignature(trustDataHash, trust.getSignature().signature(), hsmPublicKey);
     }
 
     /*---------------------------------------------------------------------------------------------*/

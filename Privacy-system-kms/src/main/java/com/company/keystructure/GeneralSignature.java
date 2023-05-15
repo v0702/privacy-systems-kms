@@ -11,10 +11,15 @@ import static com.company.utility.CryptographyOperations.getHashIdentifier;
 
 /**
  * <p>
- * Store a byte array signature and the public key used to verify that same signature
+ * Store a byte array signature and the public key used to verify that same signature.
  * </p>
- * @param signature byte array signature
- * @param publicKey the public key used to verify the signature
+ * <pre>
+ * |---GeneralSignature----|
+ * | signature | PublicKey |
+ * |-----------------------|
+ * </pre>
+ * @param signature byte array signature.
+ * @param publicKey the public key used to verify the signature.
  */
 public record GeneralSignature(byte[] signature, PublicKey publicKey) implements Serializable {
 

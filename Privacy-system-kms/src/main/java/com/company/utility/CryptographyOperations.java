@@ -8,7 +8,6 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
@@ -33,17 +32,17 @@ public class CryptographyOperations {
     /**
      * using /dev/urandom & SHA1PRNG algorithm
      */
-    private final SecureRandom random = new SecureRandom();
+    private static final SecureRandom random = new SecureRandom();
 
 
     /*---------------------------------------------------------------------------------------------*/
     /*--------------------------------------Block encryption---------------------------------------*/
 
     /**
-     * Function to encrypt byte array data using AES
-     * @param data byte array of the data to encrypt
-     * @param key of type SecretKey, the key to use for encryption
-     * @return finaCipher, of byte array type, or null if exception caught
+     * Function to encrypt byte array data using AES.
+     * @param data byte array of the data to encrypt.
+     * @param key of type SecretKey, the key to use for encryption.
+     * @return finaCipher, of byte array type, or null if exception caught.
      */
     protected byte[] encryptAES(byte[] data, SecretKey key) {
         try {
@@ -62,17 +61,17 @@ public class CryptographyOperations {
     }
 
     /**
-     * Function to decrypt byte array encrypted data using AES
-     * @param encryptedData byte array of the encrypted data to decrypt
-     * @param key of type SecretKey, the key to use for decryption
-     * @return the decrypted data in byte array format, or null if exception caught
+     * Function to decrypt byte array encrypted data using AES.
+     * @param encryptedData byte array of the encrypted data to decrypt.
+     * @param key of type SecretKey, the key to use for decryption.
+     * @return the decrypted data in byte array format, or null if exception caught.
      */
     protected byte[] decryptAES(byte[] encryptedData,SecretKey key) {
         try {
-            IvParameterSpec ivParameterSpec = new IvParameterSpec(encryptedData,0,BOCK_SIZE);
+            IvParameterSpec ivParameterSpec = new IvParameterSpec(encryptedData,0, CryptographyOperations.BOCK_SIZE);
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, key, ivParameterSpec);
-            return cipher.doFinal(encryptedData,BOCK_SIZE,encryptedData.length - BOCK_SIZE);
+            return cipher.doFinal(encryptedData,CryptographyOperations.BOCK_SIZE,encryptedData.length - CryptographyOperations.BOCK_SIZE);
         } catch (Exception e) {
             System.err.println("-> Exception: Error decrypting data (AES): " + e.getMessage());
             return null;
@@ -81,25 +80,22 @@ public class CryptographyOperations {
 
     /**
      * Function that generates a random IV of BLOCK_SIZE size.
-     * @return IvParameterSpec
+     * @return IvParameterSpec.
      */
     private IvParameterSpec generateIv() {
-        byte[] iv = new byte[BOCK_SIZE];
-        random.nextBytes(iv);
+        byte[] iv = new byte[CryptographyOperations.BOCK_SIZE];
+        CryptographyOperations.random.nextBytes(iv);
         return new IvParameterSpec(iv);
     }
 
     /*---------------------------------------------------------------------------------------------*/
     /*------------------------------------Public key encryption------------------------------------*/
 
-
     /**
-     * <p>
-     * Function to encrypt using RSA
-     * </p>
-     * @param data byte array of the data to encrypt
-     * @param publicKey of type PublicKey, the key to use for encryption
-     * @return finaCipher, of byte array type, or null if exception caught
+     * Function to encrypt using RSA.
+     * @param data byte array of the data to encrypt.
+     * @param publicKey of type PublicKey, the key to use for encryption.
+     * @return finaCipher, of byte array type, or null if exception caught.
      */
     protected byte[] encryptRSA(byte[] data, PublicKey publicKey) {
         try {
@@ -114,12 +110,10 @@ public class CryptographyOperations {
     }
 
     /**
-     * <p>
-     * Function that decrypts using RSA
-     * </p>
-     * @param encryptedData byte array of the encrypted data to decrypt
-     * @param privateKey of type PrivateKey, the key to use for decryption
-     * @return the decrypted data in byte array format, or null if exception caught
+     * Function that decrypts using RSA.
+     * @param encryptedData byte array of the encrypted data to decrypt.
+     * @param privateKey of type PrivateKey, the key to use for decryption.
+     * @return the decrypted data in byte array format, or null if exception caught.
      */
     protected byte[] decryptRSA(byte[] encryptedData, PrivateKey privateKey) {
         try {
@@ -134,12 +128,10 @@ public class CryptographyOperations {
     }
 
     /**
-     * <p>
-     * Function to sign using RSA
-     * </p>
-     * @param data byte array of the data to encrypt
-     * @param privateKey of type PrivateKey, the key to use for encryption
-     * @return signature, of byte array type, or null if exception caught
+     * Function to sign using RSA.
+     * @param data byte array of the data to encrypt.
+     * @param privateKey of type PrivateKey, the key to use for encryption.
+     * @return signature, of byte array type, or null if exception caught.
      */
     protected byte[] signatureRSA(byte[] data, PrivateKey privateKey) {
         try {
@@ -155,13 +147,11 @@ public class CryptographyOperations {
     }
 
     /**
-     * <p>
-     * Verify the signature by RSA cryptography
-     * </p>
-     * @param data the byte array of the data to verify
-     * @param signature the byte array of the signature of the data
-     * @param publicKey the public key to use to verify the signature
-     * @return true if signature is valid else false
+     * Verify the signature by RSA cryptography.
+     * @param data the byte array of the data to verify.
+     * @param signature the byte array of the signature of the data.
+     * @param publicKey the public key to use to verify the signature.
+     * @return true if signature is valid else false.
      */
     protected boolean checkSignatureRSA(byte[] data, byte[] signature, PublicKey publicKey) {
         try {
@@ -181,12 +171,12 @@ public class CryptographyOperations {
 
     /**
      * TODO: public method need fix?
-     * Function that hash data using a specified algorithm
-     * @param data the byte array data to hash
-     * @param algorithm string of the hash algorithm to use
-     * @return hash of the data in byte array format
+     * Function that hash data using a specified algorithm.
+     * @param data the byte array data to hash.
+     * @param algorithm string of the hash algorithm to use.
+     * @return hash of the data in byte array format, or null if exception caught.
      */
-    public byte[] hashSum(byte[] data,String algorithm){
+    public byte[] hashSum(byte[] data, String algorithm){
         try {
             MessageDigest messageDigestInstance = MessageDigest.getInstance(algorithm);
             messageDigestInstance.update(data);
@@ -201,17 +191,15 @@ public class CryptographyOperations {
     /*--------------------------------------Keys generations---------------------------------------*/
 
     /**
-     * Function to randomly generate keys
-     * @param keySize size in bits of the key
-     * @param algorithm for which algorithm the key is
-     * @return SecretKey randomly generated
+     * Function to randomly generate keys.
+     * @param keySize size in bits of the key.
+     * @param algorithm for which algorithm the key is.
+     * @return SecretKey randomly generated, or null if exception caught.
      */
     protected SecretKey generateKey(int keySize, String algorithm){
-
-
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance(algorithm);
-            keyGen.init(keySize,random);
+            keyGen.init(keySize,CryptographyOperations.random);
             return keyGen.generateKey();
         } catch (Exception e) {
             System.err.println("-> Exception: Error generating key: " + e.getMessage());
@@ -220,15 +208,15 @@ public class CryptographyOperations {
     }
 
     /**
-     * Function to randomly generate key pairs
-     * @param keySize size in bits of the key
-     * @param algorithm for which algorithm the key is
-     * @return KeyPair
+     * Function to randomly generate key pairs.
+     * @param keySize size in bits of the key.
+     * @param algorithm for which algorithm the key is.
+     * @return KeyPair, or null if exception caught.
      */
     protected KeyPair generateKeyPair(int keySize, String algorithm){
         try {
             KeyPairGenerator keyGen = KeyPairGenerator.getInstance(algorithm);
-            keyGen.initialize(keySize,random);
+            keyGen.initialize(keySize,CryptographyOperations.random);
             return keyGen.generateKeyPair();
         } catch (NoSuchAlgorithmException e) {
             System.err.println("-> Exception: Error generating key pair: " + e.getMessage());
@@ -284,9 +272,9 @@ public class CryptographyOperations {
     /*---------------------------------------------Other-------------------------------------------*/
 
     /**
-     * Function to get the byte array of a serializable object
-     * @param object - the object to transform to byte array
-     * @return byte array or null of Exception
+     * Function to get the byte array of a serializable object.
+     * @param object - the object to transform to byte array.
+     * @return byte array or null if exception caught.
      */
     public static byte[] objectToByte(Serializable object){
         try {

@@ -9,12 +9,19 @@ import java.util.Base64;
 /**
  * <p>
  * An encrypted key, usually with another key, stored as a byte array
- * An encrypted key with a given public key
+ * An encrypted key with a given public key.
  * </p>
- * @param encryptedKey the encrypted key to store in byte array format
+ * <pre>
+ * |--------------------------|
+ * |          Token           |
+ * |--------------|-----------|
+ * | encryptedKey | publicKey |
+ * |--------------|-----------|
+ * </pre>
+ * @param encryptedKey the encrypted key to store in byte array format.
  * @param publicKey public key associated with the encrypted key
  *                  when storing a key pair, store the public key
- *                  of the encrypted private key in here
+ *                  of the encrypted private key in here.
  */
 public record Token(byte[] encryptedKey, PublicKey publicKey) implements Serializable {
 
