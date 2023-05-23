@@ -1,0 +1,27 @@
+* 1 - TPM gera chave e manda para o sistema(servidor)
+
+* se não podemos confiar o client side program
+    o servidor pede validação ao cliente (não confiável)
+    o tpm faz checksum do programa, para confirmar não ser malicioso 
+  
+        verificação dentro de um ambiente confiável - mesmo se a plataforma for corrupta
+  
+    isto server para verificar o "so" para confirmar não ser corrupto ou alterado(?)
+
+*TMP componentes só tem um bloco de gestão de o I/O
+    Opt In - característica importante(?)
+    bloco de gestão faz controlo de acesso
+    armazenamento não volátil
+        long term keys
+        endorsement key - chave de verificação(?)
+        cifrar e guardar chaves (assumir que não vão ser extraídas)
+        configuration resgister
+        atestation - igual a endorsement mas alias (anonimato)
+        firmware
+        execution engine - executa o código (firmware)
+        RNG
+        (importante) - Opt In
+            de uma maneira geral smart cards e assim, não pertencem ao "indivíduo"
+                operações(firmware) de qual não temos controlo
+                    não conseguimos defenir o que acontece
+            permite takeOwnership puder alterar o firmware(?)

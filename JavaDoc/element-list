@@ -1,0 +1,10 @@
+com.company.database
+com.company.entities
+com.company.entitiesGUI
+com.company.hsm
+com.company.interfaces
+com.company.keystructure
+com.company.mvc.controller
+com.company.mvc.model
+com.company.mvc.view
+com.company.utility
