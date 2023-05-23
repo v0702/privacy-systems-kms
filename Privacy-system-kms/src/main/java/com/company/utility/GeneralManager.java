@@ -2,69 +2,41 @@ package com.company.utility;
 
 import com.company.hsm.HardwareSecurityModule;
 import com.company.keystructure.*;
-import com.company.utility.CryptographyOperations;
+
 import de.vandermeer.asciitable.AT_Row;
 import de.vandermeer.asciitable.AsciiTable;
 import de.vandermeer.skb.interfaces.transformers.textformat.TextAlignment;
 
+import java.rmi.RemoteException;
+import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.*;
 
 import static com.company.utility.CryptographyOperations.getHashIdentifier;
-
 public class GeneralManager {
 
-    /*----------------------------------Variables and constructor----------------------------------*/
+    /*----------------Connecting Clients----------------*/
+
+    private static List<String> operatorClientList;
+
+    private static List<String> clientClientList;
+
+    /*--------------------------------------------------*/
+    /*---------------------Operator---------------------*/
 
     /**
-     * The public keys of the hsm in service
+     * The operator public keys, associated with operator name.
      */
-    List<PublicKey> hsmServicePublicKeysList;
-    /**
-     * The operator public keys in service
-     */
-    List<PublicKey> operatorServicePublicKeysList;
+    HashMap<String, PublicKey> operatorNameAndPublicKeyList;
 
     /**
-     * TODO: Operator domain hash signature?
+     * The operator public keys list.
      */
-    List<String> operatorIdentifierList;
+    List<PublicKey> operatorPublicKeysList;
 
-    /**
-     * List of domains
-     */
-    List<Domain> domainsList;
-
-    /**
-     * List of signed trusts
-     */
-    List<Trust> trustList;
-    /**
-     * List of unsigned trust list
-     */
-    List<Trust> unsignedTrustList;
-
-    /**
-     * List of hardware security module
-     */
-    List<HardwareSecurityModule> hsmList;
-
-    /**
-     * List of operator signature of trust
-     */
-    List<OperatorSignature> operatorsTrustSignatureList;
-    List<OperatorSignature> operatorsTrustSignatureListLogging;
-
-    /**
-     * hsm number id counter
-     */
-    int hsmIdCounter;
-    /**
-     * domain number id counter
-     */
-    int domainIdCounter;
-
-    public static boolean HIGH_VERBOSE = false;
+    /*--------------------------------------------------*/
+    /*------------------------HSM-----------------------*/
 
     /**
      * Types of trusts, signed or unsigned
@@ -74,6 +46,54 @@ public class GeneralManager {
         UNSIGNED
     }
 
+    /**
+     * hsm number id counter
+     */
+    int hsmIdCounter;
+
+    /**
+     * List of hardware security modules.
+     */
+    List<HardwareSecurityModule> hsmList;
+
+    /**
+     * The public keys of the hsm in service.
+     */
+    List<PublicKey> hsmServicePublicKeysList;
+
+    /*--------------------------------------------------*/
+    /*-----------------Data structures------------------*/
+
+    /**
+     * domain number id counter
+     */
+    int domainIdCounter;
+
+    /**
+     * List of domains.
+     */
+    List<Domain> domainsList;
+
+    /**
+     * List of signed trusts.
+     */
+    List<Trust> trustList;
+
+    /**
+     * List of unsigned trusts.
+     */
+    List<Trust> unsignedTrustList;
+
+    /**
+     * List of operator signature of trust
+     */
+    List<OperatorSignature> operatorsTrustSignatureList;
+    List<OperatorSignature> operatorsTrustSignatureListLogging;
+
+    /*--------------------------------------------------*/
+
+    public static boolean HIGH_VERBOSE = false;
+
     Random random;
 
     /*---------------------------------------------------------------------------------------------*/
@@ -81,15 +101,19 @@ public class GeneralManager {
 
     /**
      * Create a general manager.
-     * Creates 1 start hsm and a start trust.
+     * Creates 1 start hsm.
      */
     public GeneralManager(int startHsmAmount) {
         random = new Random();
+
+        operatorNameAndPublicKeyList = new HashMap<>();
+
         hsmServicePublicKeysList = new ArrayList<>();
-        operatorServicePublicKeysList = new ArrayList<>();
         operatorsTrustSignatureList = new ArrayList<>();
+        operatorPublicKeysList = new ArrayList<>();
         operatorsTrustSignatureListLogging = new ArrayList<>();
-        operatorIdentifierList = new ArrayList<>();
+        operatorClientList = new ArrayList<>();
+        clientClientList = new ArrayList<>();
         domainsList = new ArrayList<>();
         trustList = new ArrayList<>();
         unsignedTrustList = new ArrayList<>();
@@ -102,6 +126,9 @@ public class GeneralManager {
             createNewHardwareSecurityModule();
     }
 
+    /**
+     * Create a general manager, Create 5 start hsm.
+     */
     public GeneralManager() {
         this(5);
     }
@@ -122,58 +149,74 @@ public class GeneralManager {
             hsmServicePublicKeysList.add(newHsm.getPublicKey());
         }
         catch (IllegalArgumentException ie) {
-            System.out.println("Wrong algorithm description: " + ie.getMessage());
+            System.err.println("Wrong algorithm description: " + ie.getMessage());
         }
         catch (Exception e) {
-            System.out.println("General exception(?): " + e.getMessage());
+            System.err.println("General exception(?): " + e.getMessage());
         }
+    }
+
+    /**
+     * Generate a RSA key pair, using an HSM in the network.
+     * @return a RSA keyPair.
+     */
+    public KeyPair generateKeyPairWithHSM() {
+        return getRandomHSM().generateKeyPair();
+    }
+
+    /**
+     *  Register and operator name and operator public key, in a hash map, using operator as key.
+     * @param operatorName operator name.
+     * @param operatorPublicKey operator public key.
+     */
+    public void subscribeOperatorWithPublicKey(String operatorName, PublicKey operatorPublicKey) {
+        operatorClientList.add(operatorName);
+        operatorPublicKeysList.add(operatorPublicKey);
+        operatorNameAndPublicKeyList.put(operatorName,operatorPublicKey);
+    }
+
+    /**
+     * Register a client name.
+     * @param clientName client name.
+     */
+    public void subscribeClient(String clientName) {
+        clientClientList.add(clientName);
     }
 
     /*---------------------------------------------------------------------------------------------*/
     /*---------------------------------------Trust operations--------------------------------------*/
 
-    public void createFirstDayTrust() {
-        //get first hsm
-        HardwareSecurityModule hsm = getHsmById(0);
-        if (hsm == null)
-            return;
-
-        // create trust with all public keys from available hsm and no operator public keys
-        Trust trust = hsm.createTrust(hsmServicePublicKeysList, new ArrayList<>());
-        hsm.signNewTrust(trust);
-        trustList.add(trust);
-    }
-
     /**
-     * Create a new trust, not signed
-     * @param hmsIdsList a list of the hsms to add to the trust
+     * Create a new trust. Special operation.
+     * Participating HSMs and operators are given at start.
+     * Random participating HSM is used.
+     *
+     * @param hmsIdsList a list of the HSMs public keys to add to the trust.
+     * @param operatorPublicKeyIndexList a list of the operator public keys.
+     * @return true if success else false.
      */
-    public void createUnsignedTrust(List<Integer> hmsIdsList, List<Integer> operatorPublicKeyIndexList) {
+    public boolean createNewTrust(List<Integer> hmsIdsList, List<Integer> operatorPublicKeyIndexList) {
         //get random hsm from hsm id list given
         int workerHsmId = hmsIdsList.get(random.nextInt(hmsIdsList.size()));
-
-        //check if given id is valid
-        if (hsmIdCounter <= workerHsmId) {
-            System.out.println("hsmId not valid -> hsm id given:"+ workerHsmId +" hsm counter: "+ hsmIdCounter);
-            return;
+        if (hsmIdCounter <= workerHsmId) { //validate
+            return false;
         }
 
         //get chosen hsm
         HardwareSecurityModule hsm = getHsmById(workerHsmId);
         if (hsm == null) {
-            System.out.println("Given hsm id not valid.");
-            return;
+            return false;
         }
 
         //process to get a random set of operators on a trust if it is empty
         List<PublicKey> operatorPublicKeyList = new ArrayList<>();
         if(operatorPublicKeyIndexList.isEmpty()) {
-            int numberOfOperatorPublicKeys = operatorServicePublicKeysList.size();
+            int numberOfOperatorPublicKeys = operatorPublicKeysList.size();
             int halfOperatorPublicKeys = (numberOfOperatorPublicKeys/2 > 0) ? numberOfOperatorPublicKeys/2 : 1;
 
-            Collections.shuffle(operatorServicePublicKeysList);
+            Collections.shuffle(operatorPublicKeysList);
             for(int i=0;i<halfOperatorPublicKeys;i++)
-                operatorPublicKeyList.add(operatorServicePublicKeysList.get(i));
+                operatorPublicKeyList.add(operatorPublicKeysList.get(i));
         }
         else {
             for(int index : operatorPublicKeyIndexList)
@@ -186,32 +229,43 @@ public class GeneralManager {
             hsmPublicKeyList.add(getHsmById(hsmId).getPublicKey());
         }
 
-        Trust unsignedTrust = hsm.createTrust( new ArrayList<>(hsmPublicKeyList), new ArrayList<>(operatorPublicKeyList));
-        unsignedTrustList.add(unsignedTrust);
+        Trust trust = hsm.createTrust( new ArrayList<>(hsmPublicKeyList), new ArrayList<>(operatorPublicKeyList));
+        trustList.add(trust);
+        return true;
     }
 
     /**
-     * <p>Operator sign a trust with his domain key pair</p>
-     * <p>If operator already signed the trust the old signature is removed and a new one is created</p>
-     * @param trustId the id of the trust to sign
-     * @param domainId the id of the domain to unwrap and use the key to sign
-     * @return true if success else false
+     * Update trust with new data.
+     * @param trustID ID of trust to update.
      */
-    public boolean operatorSignTrust(int trustId, int domainId) {
+    public void updateTrust(int trustID, List<Integer> listHsmID, List<Integer> listOperatorID) {
 
-        //get trust and domain by id
+
+
+    }
+
+    /**
+     * <p>Operator sign a trust with his domain key pair.</p>
+     * <p>If operator already signed the trust the old signature is removed and a new one is created.</p>
+     * @param trustId the id of the trust to sign.
+     * @param privateKey public key of operator to sign trust with.
+     * @return true if success else false.
+     * @deprecated TODO: need to change.
+     */
+    public boolean operatorSignTrust(int trustId, PrivateKey privateKey) {
+
+        //get trust by id
         Trust unsignedTrust = getTrustById(trustId, TRUST_LIST_TYPE.UNSIGNED);
-        Domain domain = getDomainById(domainId);
 
         //verify if signature already exists
         //checks if signature is for the same trust and if the domain being used is the same (same person)
         List<OperatorSignature> trustSignatureList = getOperatorTrustSignatureByTrustId(trustId);
         for(OperatorSignature operatorSignature : trustSignatureList) {
-            if(operatorSignature.generalSignature().publicKey().equals(domain.domainContent().domainKeys().masterKeyToken().publicKey()))
+            if(operatorSignature.generalSignature().publicKey().equals(privateKey))
                 operatorsTrustSignatureList.remove(operatorSignature);
         }
 
-        //get free hsm that belongs in trust (in this case its just random)
+        //get free hsm that belongs in trust (in this case its just random) using the public keys in Trust
         List<PublicKey> trustHsmPublicKeys = unsignedTrust.getTrustContent().getHsmPublicKeys();
         HardwareSecurityModule hsm = getHsmByPublicKey(trustHsmPublicKeys.get(random.nextInt(trustHsmPublicKeys.size())));
         if(hsm == null) {
@@ -227,7 +281,7 @@ public class GeneralManager {
         }
 
         //sign the hash with domain, by unwrapping the master key and using the private key
-        GeneralSignature generalSignature = hsm.signWithDomain(hash, domain);
+        GeneralSignature generalSignature = new GeneralSignature(hsm.signatureRSA(hash, privateKey), null);
         if(generalSignature == null) {
             System.out.println(">Signature failure.");
             return false;
@@ -284,18 +338,30 @@ public class GeneralManager {
         //get free hsm that belongs in trust (in this case its just random)
         List<PublicKey> trustHsmPublicKeys = trust.getTrustContent().getHsmPublicKeys();
         HardwareSecurityModule hsm = getHsmByPublicKey(trustHsmPublicKeys.get(random.nextInt(trustHsmPublicKeys.size())));
+        if (hsm == null) {
+            System.out.println("Error finding hsm.");
+            return -1;
+        }
 
         Domain newDomain = hsm.createDomain(trust, domainKeysType, ++domainIdCounter);
-
         if (newDomain == null)
             System.out.println("Failure creating domain, signature failed.");
         else if(domainKeysType == HardwareSecurityModule.DOMAIN_KEYS_TYPE.ASYMMETRIC_KEY_DOMAIN) {
-            operatorServicePublicKeysList.add(newDomain.domainContent().domainKeys().masterKeyToken().publicKey());
-            operatorIdentifierList.add(getHashIdentifier(newDomain));
+            operatorPublicKeysList.add(newDomain.domainContent().domainKeys().masterKeyToken().publicKey());
+            //operatorIdentifierList.add(getHashIdentifier(newDomain));
         }
         domainsList.add(newDomain);
 
         return domainIdCounter;
+    }
+
+    /**
+     * Check if domain exists in the domain list.
+     * @param domainId the domain ID to check for existence.
+     * @return true if found else false.
+     */
+    public boolean checkDomainExist(int domainId) {
+        return getDomainById(domainId) != null;
     }
 
     /*---------------------------------------------------------------------------------------------*/
@@ -349,23 +415,95 @@ public class GeneralManager {
     }
 
     /*---------------------------------------------------------------------------------------------*/
+    /*--------------------------------------------Setter-------------------------------------------*/
+
+
+
+    /*---------------------------------------------------------------------------------------------*/
     /*-------------------------------------------Getters-------------------------------------------*/
 
-    public PublicKey getOperatorPublicKeyById(int index) {
-        return operatorServicePublicKeysList.get(index);
+    /**
+     * Get all operator names.
+     * @return list of all operators names.
+     */
+    public List<String> getOperatorsNames() {
+        return operatorClientList;
     }
 
     /**
-     * Get a hsm by its public key
-     * @param publicKey the public key of the hsm to get
-     * @return The hsm found or null if not
+     * Get operator public key by index in list, this index is interpreted as a ID.
+     * @param index the index position of the public key to get.
+     * @return a public key.
      */
-    public HardwareSecurityModule getHsmByPublicKey(PublicKey publicKey) {
+    private PublicKey getOperatorPublicKeyById(int index) {
+        return operatorPublicKeysList.get(index);
+    }
+
+    /**
+     * Get an operator name from its public key.
+     * @param publicKeyTarget the public key of the operator.
+     * @return the name of the operators who as that public key.
+     */
+    private String getOperatorNameFromPublicKey(PublicKey publicKeyTarget) {
+        Set<String> setOperatorName = operatorNameAndPublicKeyList.keySet();
+        String targetName = "";
+
+        for (String operatorName : setOperatorName) {
+            PublicKey publicKey = operatorNameAndPublicKeyList.get(operatorName);
+            if (publicKey.equals(publicKeyTarget)) {
+                targetName = operatorName;
+                break;
+            }
+        }
+
+        return targetName;
+    }
+
+    /**
+     * Get a hsm by its public key.
+     * @param publicKey the public key of the hsm to get.
+     * @return The hsm found or null if not.
+     */
+    private HardwareSecurityModule getHsmByPublicKey(PublicKey publicKey) {
         for(HardwareSecurityModule hsm : hsmList) {
             if(hsm.getPublicKey().equals(publicKey))
                 return hsm;
         }
         return null;
+    }
+
+    /**
+     * Get a hsm identifier by its public key.
+     * @param publicKey the public key of the hsm to get.
+     * @return The hsm identifier or -1 if not.
+     */
+    private Integer getHsmIdentifierByPublicKey(PublicKey publicKey) {
+        for(HardwareSecurityModule hsm : hsmList) {
+            if(hsm.getPublicKey().equals(publicKey))
+                return hsm.getId();
+        }
+        return -1;
+    }
+
+    /**
+     * Gets an hsm from a given int id.
+     * @param id int id to identify hsm.
+     * @return the hsm with the pretended id or null if not found.
+     */
+    private HardwareSecurityModule getHsmById(int id) {
+        for (HardwareSecurityModule hsm : hsmList) {
+            if(hsm.getId() == id)
+                return hsm;
+        }
+        return null;
+    }
+
+    /**
+     * Get a random hsm from the list.
+     * @return a random existing hsm.
+     */
+    private HardwareSecurityModule getRandomHSM() {
+        return hsmList.get(random.nextInt(hsmList.size()));
     }
 
     /**
@@ -384,16 +522,56 @@ public class GeneralManager {
     }
 
     /**
-     * Gets an hsm from a given int id
-     * @param id int id to identify hsm
-     * @return the hsm with the pretended id or null if not found
+     * Get HashMap of Operator Name as key and associated public key.
+     * @return a hashMap of Operator name (String) and public key (PublicKey).
      */
-    public HardwareSecurityModule getHsmById(int id) {
-        for (HardwareSecurityModule hsm : hsmList) {
-            if(hsm.getId() == id)
-                return hsm;
+    public HashMap<String, PublicKey> getOperatorNameAndPublicKey() {
+        return operatorNameAndPublicKeyList;
+    }
+
+    /**
+     * Get the name of the operators in a specific trust.
+     * @param trustIdentifier the trust that we want to operators from.
+     * @return a list of the operators name in the trust.
+     */
+    public List<String> getTrustOperators(int trustIdentifier) {
+        Trust trust = getTrustById(trustIdentifier, TRUST_LIST_TYPE.SIGNED);
+        if (trust == null)
+            return new ArrayList<>();
+        TrustContent trustContent = trust.getTrustContent();
+
+        List<PublicKey> listTrustOperatorsPublicKeys = trustContent.getOperatorPublicKeys();
+        List<String> listOperatorsName = new ArrayList<>();
+
+        for (PublicKey publicKey : listTrustOperatorsPublicKeys) {
+            String operatorName = getOperatorNameFromPublicKey(publicKey);
+            if (!operatorName.equals("")) {
+                listOperatorsName.add(operatorName);
+            }
         }
-        return null;
+        return listOperatorsName;
+    }
+
+    /**
+     * Get the ids of the hsm in a trust.
+     * @param trustIdentifier the trust that we want the hsm ids from.
+     * @return  a list of the hsm ids in a specified trust.
+     */
+    public List<String> getTrustHsm(int trustIdentifier) {
+        Trust trust = getTrustById(trustIdentifier, TRUST_LIST_TYPE.SIGNED);
+        if (trust == null)
+            return new ArrayList<>();
+        TrustContent trustContent = trust.getTrustContent();
+
+        List<PublicKey> listTrustHsmPublicKeys = trustContent.getHsmPublicKeys();
+        List<String> listHsmIDs = new ArrayList<>();
+        for (PublicKey publicKey : listTrustHsmPublicKeys) {
+            int hsmID = getHsmIdentifierByPublicKey(publicKey);
+            if (hsmID != -1) {
+                listHsmIDs.add(String.valueOf(hsmID));
+            }
+        }
+        return listHsmIDs;
     }
 
     /**
@@ -403,8 +581,7 @@ public class GeneralManager {
      *             signed or unsigned
      * @return the trust with the pretended id or null if not found
      */
-    public Trust getTrustById(int id, TRUST_LIST_TYPE type) {
-
+    private Trust getTrustById(int id, TRUST_LIST_TYPE type) {
         switch (type) {
             case SIGNED -> {
                 for (Trust trust : trustList) {
@@ -430,7 +607,7 @@ public class GeneralManager {
      * @param domainId int id that identifies the domain
      * @return the domain or null if not found
      */
-    public Domain getDomainById(int domainId) {
+    private Domain getDomainById(int domainId) {
         for(Domain domain : domainsList) {
             if(domain.domainId() == domainId)
                 return domain;
@@ -452,14 +629,37 @@ public class GeneralManager {
         return null;
     }
 
-    public boolean checkDomainExist(int domainId) {
-        return getDomainById(domainId) != null;
+    /**
+     * Get List of HSM ID as string.
+     * @return a List of the HSM IDs.
+     */
+    public List<String> getListHsmIdentifier() {
+        List<String> hsmNameList = new ArrayList<>();
+
+        for (HardwareSecurityModule hsm : hsmList)
+            hsmNameList.add(String.valueOf(hsm.getId()));
+
+        return hsmNameList;
+    }
+
+    /**
+     * List of the Ids of all the valid (signed) trusts.
+     * @return list with the IDs of the Trusts
+     */
+    public List<Integer> getListTrustID() {
+        List<Integer> listTrust = new ArrayList<>();
+
+        for (Trust trust : trustList) {
+            listTrust.add(trust.getTrustContent().getId());
+        }
+
+        return listTrust;
     }
 
     /*---------------------------------------------------------------------------------------------*/
     /*---------------------------------------Show information--------------------------------------*/
 
-    public String showTrusts(int domainId, TRUST_LIST_TYPE type) {
+    public String showTrustsTable(int domainId, TRUST_LIST_TYPE type) {
         StringBuilder stringBuilder = new StringBuilder();
         PublicKey operatorPublicKey = getDomainById(domainId).domainContent().domainKeys().masterKeyToken().publicKey();
         boolean trustContainsOperator = false;
@@ -736,8 +936,8 @@ public class GeneralManager {
         row.setTextAlignment(TextAlignment.CENTER);
         at.addRule();
 
-        for (int i=0;i<operatorServicePublicKeysList.size();++i) {
-            PublicKey publicKey = operatorServicePublicKeysList.get(i);
+        for (int i = 0; i< operatorPublicKeysList.size(); ++i) {
+            PublicKey publicKey = operatorPublicKeysList.get(i);
             content.clear();
             content.add(String.valueOf(i));
             content.add(CryptographyOperations.getHashIdentifier(publicKey));
@@ -774,7 +974,7 @@ public class GeneralManager {
         return stringBuilder.toString();
     }
 
-    public String showHsm() {
+    public String showHsmTable() {
         StringBuilder stringBuilder = new StringBuilder();
         AsciiTable at = new AsciiTable();
         at.addRule();

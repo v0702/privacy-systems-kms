@@ -22,6 +22,7 @@ public class CryptographyOperations {
     public static int AES_KEY_LENGTH_3 = 256;
 
     public static int RSA_KEY_LENGTH_2 = 2048;
+    public static int RSA_KEY_LENGTH_4 = 4096;
 
     public static String KEY_GENERATOR_ALGORITHM_AES = "AES";
     public static String KEY_GENERATOR_ALGORITHM_RSA = "RSA";

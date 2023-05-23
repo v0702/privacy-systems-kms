@@ -221,15 +221,6 @@ public class HardwareSecurityModule extends CryptographyOperations {
     }
 
     /**
-     *
-     * @param trust
-     */
-    public void signNewTrust(Trust trust) {
-        byte[] hash = hashSum(CryptographyOperations.objectToByte(trust.getTrustContent()), CryptographyOperations.HASH_ALGORITHM_1);
-        trust.setSignature(new GeneralSignature(this.signData(hash), this.getPublicKey()));
-    }
-
-    /**
      * Sign data with a domain, verify the validity of the domain signature
      * @param data the hash of data to sign in byte array format
      * @param domain the domain to unwrap and use key to sign domain
@@ -262,17 +253,17 @@ public class HardwareSecurityModule extends CryptographyOperations {
     /*--------------------------------------Trust operations---------------------------------------*/
 
     /**
-     * Create a new trust.
-     * @param hsmPublicKeysList the list of hsm public keys to add to trust
-     * @param operatorPublicKeysList the list of operator public keys to add to trust
-     * @return a unsigned trust
+     * Create a new trust. Special operation.
+     * @param hsmPublicKeysList the list of hsm public keys to add to trust.
+     * @param operatorPublicKeysList the list of operator public keys to add to trust.
+     * @return a signed trust.
      */
     public Trust createTrust(List<PublicKey> hsmPublicKeysList, List<PublicKey> operatorPublicKeysList) {
         TrustContent trustContent = new TrustContent(hsmPublicKeysList,operatorPublicKeysList,new byte[0]);
-        Trust trust = new Trust(trustContent, null);
-        this.signNewTrust(trust);
+        byte[] hash = hashSum(CryptographyOperations.objectToByte(trustContent), CryptographyOperations.HASH_ALGORITHM_1);
+        GeneralSignature signature = new GeneralSignature(this.signData(hash), this.getPublicKey());
 
-        return trust;
+        return new Trust(trustContent, signature);
     }
 
     public void updateTrust() {
@@ -429,6 +420,10 @@ public class HardwareSecurityModule extends CryptographyOperations {
      */
     private boolean checkSignature(byte[] data, GeneralSignature generalSignature) {
         return checkSignatureRSA(data, generalSignature.signature(), generalSignature.publicKey());
+    }
+
+    public KeyPair generateKeyPair() {
+        return generateKeyPair(RSA_KEY_LENGTH_4,KEY_GENERATOR_ALGORITHM_RSA);
     }
 
     /*---------------------------------------------------------------------------------------------*/

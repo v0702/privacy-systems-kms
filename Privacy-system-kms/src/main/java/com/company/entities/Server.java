@@ -12,7 +12,9 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.LocateRegistry;
 
-import java.util.ArrayList;
+import java.security.KeyPair;
+import java.security.PublicKey;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
@@ -24,14 +26,10 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
 
     private static final Scanner readInput = new Scanner(System.in);
 
-    private static List<String> operatorClientList;
-    private static List<String> clientClientList;
-
     public Server() throws RemoteException {
         super();
-        operatorClientList = new ArrayList<>();
-        clientClientList = new ArrayList<>();
-        generalManager = new GeneralManager();
+
+        generalManager = new GeneralManager(10);
     }
 
     /*---------------------------------------------------------------------------------------------*/
@@ -39,22 +37,17 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
 
     public String showSignedTrusts(int opDomainId) {
         System.out.println(">Showing signed trusts");
-        return generalManager.showTrusts(opDomainId, GeneralManager.TRUST_LIST_TYPE.SIGNED);
+        return generalManager.showTrustsTable(opDomainId, GeneralManager.TRUST_LIST_TYPE.SIGNED);
     }
 
     public String showUnsignedTrusts(int opDomainId) {
         System.out.println(">Showing unsigned trusts");
-        return generalManager.showTrusts(opDomainId, GeneralManager.TRUST_LIST_TYPE.UNSIGNED);
+        return generalManager.showTrustsTable(opDomainId, GeneralManager.TRUST_LIST_TYPE.UNSIGNED);
     }
 
     public String showOperatorTrustSignatures(int trustIdentification) {
         System.out.println(">Showing operator signatures for trust: " + trustIdentification);
         return generalManager.showOperatorTrustSignatures(trustIdentification);
-    }
-
-    public String showHardwareSecurityModules() {
-        System.out.println(">Showing hardware security module");
-        return generalManager.showHsm();
     }
 
     public String showOperatorPublicKeys() {
@@ -82,16 +75,48 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     }
 
     /*---------------------------------------------------------------------------------------------*/
-    /*-------------------------------------------Operations----------------------------------------*/
+    /*---------------------------------------------Get---------------------------------------------*/
 
-    public void createNewTrust(List<Integer> hsmIdList, List<Integer> operatorPublicKeyIndexList) {
-        System.out.println(">Creating new trust");
-        generalManager.createUnsignedTrust(hsmIdList, operatorPublicKeyIndexList);
+    public List<String> getOperatorsNames() throws RemoteException {
+        return generalManager.getOperatorsNames();
     }
 
-    public boolean operatorSignTrust(int trustId, int domainId) {
-        System.out.println(">Operator sign trust");
-        return generalManager.operatorSignTrust(trustId, domainId);
+    public HashMap<String, PublicKey>  getOperatorNameAndPublicKey() throws RemoteException {
+        System.out.println(">Getting hasMap of operator name and public key.");
+        return generalManager.getOperatorNameAndPublicKey();
+    }
+
+    public List<String> getListHsmIdentifier() throws RemoteException{
+        System.out.println(">Getting hardware security module IDs.");
+        return generalManager.getListHsmIdentifier();
+    }
+
+    public List<Integer> getListTrustID() throws RemoteException {
+        System.out.println(">Getting List of Trust ID.");
+        return generalManager.getListTrustID();
+    }
+
+    public List<String> getTrustOperators(int trustIdentifier) throws RemoteException {
+        System.out.println(">Getting list of operators in a trust.");
+        return generalManager.getTrustOperators(trustIdentifier);
+    }
+
+    public List<String> getTrustHsm(int trustIdentifier) throws RemoteException {
+        System.out.println(">Getting list of hsm identifiers in a trust.");
+        return generalManager.getTrustHsm(trustIdentifier);
+    }
+
+    /*---------------------------------------------------------------------------------------------*/
+    /*-------------------------------------------Operations----------------------------------------*/
+
+    public boolean createNewTrust(List<Integer> listHsmID, List<Integer> operatorPublicKeyIndexList) throws RemoteException{
+        System.out.println(">Creating new trust");
+        boolean status = generalManager.createNewTrust(listHsmID, operatorPublicKeyIndexList);
+        if (status)
+            System.out.println(">Success creating new trust");
+        else
+            System.out.println(">Failure creating new trust");
+        return status;
     }
 
     public void signTrust(int trustId) {
@@ -102,6 +127,12 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     public boolean verifyTrustSignature(int trustId) {
         System.out.println(">Verify domain signature");
         return generalManager.verifyTrustSignature(trustId);
+    }
+
+
+    public void createNewHardwareSecurityModule() {
+        System.out.println(">Creating new hardware security module");
+        generalManager.createNewHardwareSecurityModule();
     }
 
 
@@ -120,13 +151,6 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         return generalManager.verifyDomainSignature(domainId);
     }
 
-
-    public void createNewHardwareSecurityModule() {
-        System.out.println(">Creating new hardware security module");
-        generalManager.createNewHardwareSecurityModule();
-    }
-
-
     public String encryptWithDomain(byte[] data, int domainId) {
         System.out.println(">Encrypt with domain");
         return CryptographyOperations.byteToBase64String(generalManager.encryptWithDomain(data, domainId));
@@ -137,18 +161,26 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         return generalManager.decryptWithDomain(CryptographyOperations.base64ToByte(encryptedDataBase64), domainId);
     }
 
-    /*---------------------------------------------------------------------------------------------*/
-    /*---------------------------------------General functions-------------------------------------*/
 
-    public void subscribeOperator(String name) throws RemoteException {
+    public KeyPair generateKeyPair() throws RemoteException {
+        return generalManager.generateKeyPairWithHSM();
+    }
+
+    /*---------------------------------------------------------------------------------------------*/
+    /*---------------------------------------Subscribe users---------------------------------------*/
+
+    public void subscribeOperatorWithPublicKey(String name, PublicKey publicKey) throws RemoteException {
         System.out.println(">Subscribing Operator: " + name);
-        operatorClientList.add(name);
+        generalManager.subscribeOperatorWithPublicKey(name, publicKey);
     }
 
     public void subscribeClient(String name) throws RemoteException {
         System.out.println(">Subscribing Client: " + name);
-        clientClientList.add(name);
+        generalManager.subscribeClient(name);
     }
+
+    /*---------------------------------------------------------------------------------------------*/
+    /*---------------------------------------------Input-------------------------------------------*/
 
     private static void readInput() {
         int option = 0;
@@ -163,8 +195,8 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
             System.out.print("Type option: ");
             option = readInput.nextInt();
             switch (option) {
-                case 1 -> System.out.println(operatorClientList.get(0).hashCode());
-                case 2 -> System.out.println(clientClientList.get(0).hashCode());
+                case 1 -> System.out.println("Placeholder print operators.");
+                case 2 -> System.out.println("Placeholder print clients.");
             }
 
         }
