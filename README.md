@@ -28,7 +28,7 @@ Example usage:
    
    3. Press enter when Ip of server is asked for local host
    
-   4. Each operator will have its own Domain created from initial Trust
+   4. Each operator will have its own public key pair
    
    5. Go to Hsm menu to add/create more hsm, in the system, if so desired
    
