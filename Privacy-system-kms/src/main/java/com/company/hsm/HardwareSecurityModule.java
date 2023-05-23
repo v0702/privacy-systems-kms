@@ -258,17 +258,26 @@ public class HardwareSecurityModule extends CryptographyOperations {
      * @param operatorPublicKeysList the list of operator public keys to add to trust.
      * @return a signed trust.
      */
-    public Trust createTrust(List<PublicKey> hsmPublicKeysList, List<PublicKey> operatorPublicKeysList) {
-        TrustContent trustContent = new TrustContent(hsmPublicKeysList,operatorPublicKeysList,new byte[0]);
+    public Trust createTrust(List<PublicKey> hsmPublicKeysList, List<PublicKey> operatorPublicKeysList, int quorum) {
+        TrustContent trustContent = new TrustContent(hsmPublicKeysList,operatorPublicKeysList, quorum, new byte[0], -1);
         byte[] hash = hashSum(CryptographyOperations.objectToByte(trustContent), CryptographyOperations.HASH_ALGORITHM_1);
         GeneralSignature signature = new GeneralSignature(this.signData(hash), this.getPublicKey());
 
         return new Trust(trustContent, signature);
     }
 
-    public void updateTrust() {
+    public Trust buildTrust(Trust trust,List<PublicKey> hsmPublicKeysList, List<PublicKey> operatorPublicKeysList, int quorum) {
+        TrustContent oldTrustContent = trust.getTrustContent();
+        List<PublicKey> newHsmPublicKeysList = new ArrayList<>(oldTrustContent.getHsmPublicKeys());
+        List<PublicKey> newOperatorPublicKeysList = new ArrayList<>(oldTrustContent.getOperatorPublicKeys());
+        newHsmPublicKeysList.addAll(hsmPublicKeysList);
+        newOperatorPublicKeysList.addAll(operatorPublicKeysList);
 
-        return ;
+        byte[] predecessorHash = this.hashSum(objectToByte(trust),CryptographyOperations.HASH_ALGORITHM_1);
+
+        TrustContent trustContent = new TrustContent(newHsmPublicKeysList,newOperatorPublicKeysList, quorum,predecessorHash,oldTrustContent.getId());
+
+        return new Trust(trustContent,null);
     }
 
     /**

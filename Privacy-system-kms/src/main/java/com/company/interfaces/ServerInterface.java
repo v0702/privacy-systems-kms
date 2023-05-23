@@ -3,6 +3,7 @@ package com.company.interfaces;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.List;
@@ -18,16 +19,6 @@ public interface ServerInterface extends Remote {
     /*---------------------------------------------------------------------------------------------*/
     /*----------------------------------------Get from server--------------------------------------*/
 
-    String showSignedTrusts(int opDomainId) throws RemoteException;
-
-    String showUnsignedTrusts(int opDomainId) throws RemoteException;
-
-    String showOperatorTrustSignatures(int trustIdentification) throws RemoteException;
-
-
-    /*---------------------------------------------------------------------------------------------*/
-    /*----------------------------------------Get from server--------------------------------------*/
-
     public List<String> getOperatorsNames() throws RemoteException;
 
     HashMap<String, PublicKey> getOperatorNameAndPublicKey() throws RemoteException;
@@ -36,25 +27,21 @@ public interface ServerInterface extends Remote {
 
     public List<Integer> getListTrustID() throws RemoteException;
 
+    public List<Integer> getListUnsignedTrustID() throws RemoteException;
+
     public List<String> getTrustOperators(int trustIdentifier) throws RemoteException;
 
     public List<String> getTrustHsm(int trustIdentifier) throws RemoteException;
 
     /*---------------------------------------------------------------------------------------------*/
 
+    boolean createNewTrust(List<Integer> hsmIdList, List<Integer> operatorPublicKeyList, int quorum) throws RemoteException;
 
-    String showOperatorPublicKeys() throws RemoteException;
-
-    String showHsmPublicKeys() throws RemoteException;
-
-    String showDomains() throws RemoteException;
-
-    String showDomain(int domainId) throws RemoteException;
-
-
-    boolean createNewTrust(List<Integer> hsmIdList, List<Integer> operatorPublicKeyList) throws RemoteException;
+    public boolean buildTrust(int trustID,List<Integer> hsmIdsList,List<String> listOperatorName, int quorum) throws RemoteException;
 
     void signTrust(int trustId) throws RemoteException;
+
+    public void operatorSignTrust(int trustID, PrivateKey privateKey) throws RemoteException;
 
     boolean verifyTrustSignature(int trustId) throws RemoteException;
 
@@ -75,4 +62,19 @@ public interface ServerInterface extends Remote {
 
     void createNewHardwareSecurityModule() throws RemoteException;
 
+    /*---------------------------------------------------------------------------------------------*/
+
+    /*String showOperatorPublicKeys() throws RemoteException;
+
+    String showHsmPublicKeys() throws RemoteException;
+
+    String showDomains() throws RemoteException;
+
+    String showDomain(int domainId) throws RemoteException;
+
+    String showSignedTrusts(int opDomainId) throws RemoteException;
+
+    String showUnsignedTrusts(int opDomainId) throws RemoteException;
+
+    String showOperatorTrustSignatures(int trustIdentification) throws RemoteException;*/
 }

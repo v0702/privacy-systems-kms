@@ -13,6 +13,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.rmi.registry.LocateRegistry;
 
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +36,7 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     /*---------------------------------------------------------------------------------------------*/
     /*---------------------------------------Show information--------------------------------------*/
 
-    public String showSignedTrusts(int opDomainId) {
+    /*public String showSignedTrusts(int opDomainId) {
         System.out.println(">Showing signed trusts");
         return generalManager.showTrustsTable(opDomainId, GeneralManager.TRUST_LIST_TYPE.SIGNED);
     }
@@ -68,7 +69,7 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     public String showDomain(int domainId) {
         System.out.println(">Showing domain " + domainId);
         return generalManager.showDomain(domainId);
-    }
+    }*/
 
     public boolean checkDomainExists(int domainId) {
         return generalManager.checkDomainExist(domainId);
@@ -96,6 +97,11 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         return generalManager.getListTrustID();
     }
 
+    public List<Integer> getListUnsignedTrustID() throws RemoteException {
+        System.out.println(">Getting List of unsigned Trust ID.");
+        return generalManager.getListUnsignedTrustID();
+    }
+
     public List<String> getTrustOperators(int trustIdentifier) throws RemoteException {
         System.out.println(">Getting list of operators in a trust.");
         return generalManager.getTrustOperators(trustIdentifier);
@@ -109,9 +115,9 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
     /*---------------------------------------------------------------------------------------------*/
     /*-------------------------------------------Operations----------------------------------------*/
 
-    public boolean createNewTrust(List<Integer> listHsmID, List<Integer> operatorPublicKeyIndexList) throws RemoteException{
+    public boolean createNewTrust(List<Integer> listHsmID, List<Integer> operatorPublicKeyIndexList, int quorum) throws RemoteException{
         System.out.println(">Creating new trust");
-        boolean status = generalManager.createNewTrust(listHsmID, operatorPublicKeyIndexList);
+        boolean status = generalManager.createNewTrust(listHsmID, operatorPublicKeyIndexList, quorum);
         if (status)
             System.out.println(">Success creating new trust");
         else
@@ -119,9 +125,18 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         return status;
     }
 
+    public boolean buildTrust(int trustID,List<Integer> hsmIdsList,List<String> listOperatorName, int quorum) throws RemoteException {
+        System.out.println(">Building trust");
+        return generalManager.buildTrust(trustID,hsmIdsList,listOperatorName, quorum);
+    }
+
     public void signTrust(int trustId) {
         System.out.println(">Hsm sign trust");
         generalManager.signTrust(trustId);
+    }
+
+    public void operatorSignTrust(int trustID, PrivateKey privateKey) throws RemoteException {
+        generalManager.operatorSignTrust(trustID, privateKey);
     }
 
     public boolean verifyTrustSignature(int trustId) {

@@ -52,10 +52,12 @@ public class TrustContent implements Serializable {
      */
     private byte[] predecessorHash;
 
+    private final int predecessorIdentifier;
+
     /**
      * TrustContent constructor
      */
-    public TrustContent(List<PublicKey> hsmPublicKeys, List<PublicKey> operatorPublicKeys, byte[] predecessorHash) {
+    public TrustContent(List<PublicKey> hsmPublicKeys, List<PublicKey> operatorPublicKeys, int quorumMinValue, byte[] predecessorHash, int predecessorIdentifier) {
         this.identifier = ++trustCounter;
         this.hsmPublicKeys = new ArrayList<>(hsmPublicKeys);
         if(operatorPublicKeys == null) {
@@ -64,10 +66,11 @@ public class TrustContent implements Serializable {
         }
         else {
             this.operatorPublicKeys = new ArrayList<>(operatorPublicKeys);
-            this.quorumMinValue = operatorPublicKeys.size();
+            this.quorumMinValue = quorumMinValue;
         }
 
         this.predecessorHash = predecessorHash.clone();
+        this.predecessorIdentifier = predecessorIdentifier;
     }
 
     private TrustContent(TrustContent trustContent) {
@@ -76,6 +79,7 @@ public class TrustContent implements Serializable {
         this.identifier = trustContent.getId();
         this.quorumMinValue = trustContent.getQuorumMinValue();
         this.predecessorHash = trustContent.getPredecessorHash().clone();
+        this.predecessorIdentifier = trustContent.getPredecessorIdentifier();
     }
 
     /**
@@ -122,6 +126,10 @@ public class TrustContent implements Serializable {
 
     public byte[] getPredecessorHash() {
         return predecessorHash;
+    }
+
+    public int getPredecessorIdentifier() {
+        return predecessorIdentifier;
     }
 
 
