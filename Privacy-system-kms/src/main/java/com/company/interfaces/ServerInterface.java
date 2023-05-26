@@ -1,5 +1,7 @@
 package com.company.interfaces;
 
+import com.company.keystructure.Domain;
+
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.security.KeyPair;
@@ -33,15 +35,19 @@ public interface ServerInterface extends Remote {
 
     public List<String> getTrustHsm(int trustIdentifier) throws RemoteException;
 
+    public int getQuorum(int trustIdentifier) throws RemoteException;
+
+    public List<Integer> getListDomainID() throws RemoteException;
+
     /*---------------------------------------------------------------------------------------------*/
 
     boolean createNewTrust(List<Integer> hsmIdList, List<Integer> operatorPublicKeyList, int quorum) throws RemoteException;
 
     public boolean buildTrust(int trustID,List<Integer> hsmIdsList,List<String> listOperatorName, int quorum) throws RemoteException;
 
-    void signTrust(int trustId) throws RemoteException;
+    public boolean signTrust(int trustId) throws RemoteException;
 
-    public void operatorSignTrust(int trustID, PrivateKey privateKey) throws RemoteException;
+    public boolean operatorSignTrust(int trustID, PublicKey publicKey, PrivateKey privateKey) throws RemoteException;
 
     boolean verifyTrustSignature(int trustId) throws RemoteException;
 

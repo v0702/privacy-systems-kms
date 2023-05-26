@@ -5,10 +5,9 @@ import com.company.mvc.model.ClientModel;
 import com.company.mvc.view.ClientView;
 
 import com.googlecode.lanterna.gui2.*;
-import com.googlecode.lanterna.gui2.dialogs.DirectoryDialogBuilder;
-import org.w3c.dom.Text;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -68,9 +67,9 @@ public class ClientController {
     private void encryptWithDomain(File file, String encryptedFileLocation) {
         try {
 
-            String fileContent = readFile(file);
+            byte[] fileContent = readFile(file);
 
-            String base64EncryptedData = server.encryptWithDomain(fileContent.getBytes(StandardCharsets.UTF_8), this.clientModel.getDomainIdentifier());
+            String base64EncryptedData = server.encryptWithDomain(fileContent, this.clientModel.getDomainIdentifier());
 
             writeFile(base64EncryptedData,encryptedFileLocation);
         } catch (RemoteException e) {
@@ -82,7 +81,7 @@ public class ClientController {
 
     private void decryptWithDomain(File file, String decryptedFileLocation) {
         try {
-            String base64FileContent = readFile(file);
+            String base64FileContent = readFileString(file);
 
             byte[] data = server.decryptWithDomain(base64FileContent, this.clientModel.getDomainIdentifier());
             String content = new String(data,StandardCharsets.UTF_8);
@@ -96,7 +95,23 @@ public class ClientController {
 
     /*---------------------------------------------------------------------------------------------*/
 
-    private String readFile(File file) throws Exception {
+    private byte[] readFile(File file) throws Exception {
+        FileInputStream fileInputStream = new FileInputStream(file);
+        byte[] data = new byte[fileInputStream.available()];
+        fileInputStream.read(data);
+
+        return data;
+        /*Scanner fileReader = new Scanner(file);
+        fileReader.useDelimiter("\\z");
+
+        StringBuilder fileContent = new StringBuilder();
+        while (fileReader.hasNextLine())
+            fileContent.append(fileReader.nextLine());
+
+        return fileContent.toString();*/
+    }
+
+    private String readFileString(File file) throws Exception {
         Scanner fileReader = new Scanner(file);
 
         StringBuilder fileContent = new StringBuilder();
@@ -105,6 +120,7 @@ public class ClientController {
 
         return fileContent.toString();
     }
+
 
     private void writeFile(String content, String fileName) throws Exception {
         FileWriter fileWriter = new FileWriter(fileName);

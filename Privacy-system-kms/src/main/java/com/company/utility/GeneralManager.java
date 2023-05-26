@@ -232,7 +232,10 @@ public class GeneralManager {
         //get the public keys from the given hsm id list
         List<PublicKey> hsmPublicKeyList = new ArrayList<>();
         for (Integer hsmId : hsmIdsList) {
-            hsmPublicKeyList.add(getHsmById(hsmId).getPublicKey());
+            HardwareSecurityModule tempHsm = getHsmById(hsmId);
+            if(tempHsm == null)
+                continue;
+            hsmPublicKeyList.add(tempHsm.getPublicKey());
         }
 
         Trust trust = hsm.createTrust( new ArrayList<>(hsmPublicKeyList), new ArrayList<>(operatorPublicKeyList), quorum);
@@ -273,19 +276,24 @@ public class GeneralManager {
      * <p>Operator sign a trust with his domain key pair.</p>
      * <p>If operator already signed the trust the old signature is removed and a new one is created.</p>
      * @param trustId the id of the trust to sign.
-     * @param privateKey public key of operator to sign trust with.
+     * @param privateKey the private key of operator to sign trust with.
+     * @param publicKey public key of operator to verify.
      * @return true if success else false.
      * @deprecated TODO: need to change.
      */
-    public boolean operatorSignTrust(int trustId, PrivateKey privateKey) {
+    public boolean operatorSignTrust(int trustId, PublicKey publicKey, PrivateKey privateKey) {
         //get trust by id
         Trust unsignedTrust = getTrustById(trustId, TRUST_LIST_TYPE.UNSIGNED);
+        if (unsignedTrust == null) {
+            System.out.println("> Error finding trust.");
+            return false;
+        }
 
         //verify if signature already exists
         //checks if signature is for the same trust and if the domain being used is the same (same person)
         List<OperatorSignature> trustSignatureList = getOperatorTrustSignatureByTrustId(trustId);
         for(OperatorSignature operatorSignature : trustSignatureList) {
-            if(operatorSignature.generalSignature().publicKey().equals(privateKey))
+            if(operatorSignature.generalSignature().publicKey().equals(publicKey))
                 operatorsTrustSignatureList.remove(operatorSignature);
         }
 
@@ -305,11 +313,12 @@ public class GeneralManager {
         }
 
         //sign the hash with domain, by unwrapping the master key and using the private key
-        GeneralSignature generalSignature = new GeneralSignature(hsm.signatureRSA(hash, privateKey), null);
-        if(generalSignature == null) {
+        byte[] dataSignature = hsm.signatureRSA(hash, privateKey);
+        if(dataSignature == null) {
             System.out.println(">Signature failure.");
             return false;
         }
+        GeneralSignature generalSignature = new GeneralSignature(dataSignature, publicKey);
 
         operatorsTrustSignatureList.add(new OperatorSignature(generalSignature, trustId));
 
@@ -317,13 +326,15 @@ public class GeneralManager {
     }
 
     /**
-     * Sign a trust by giving an id of the desired trust to sign
+     * Sign a trust by giving an id of the desired trust to sign.
+     * @return boolean, true if success else false.
      * @param trustId the id of the trust to sign
      */
-    public void signTrust(int trustId) {
+    public boolean signTrust(int trustId) {
         Trust trust = getTrustById(trustId, TRUST_LIST_TYPE.UNSIGNED);
         if(trust == null) {
-            return;
+            System.out.println("> Error finding trust.");
+            return false;
         }
 
         List<OperatorSignature> operatorSignatureSubList = getOperatorTrustSignatureByTrustId(trustId);
@@ -331,18 +342,31 @@ public class GeneralManager {
         //get free hsm that belongs in trust (in this case its just random)
         List<PublicKey> trustHsmPublicKeys = trust.getTrustContent().getHsmPublicKeys();
         HardwareSecurityModule hsm = getHsmByPublicKey(trustHsmPublicKeys.get(random.nextInt(trustHsmPublicKeys.size())));
+        if (hsm == null) {
+            System.out.println("> Error finding hsm.");
+            return false;
+        }
 
-        boolean signatureSuccess = hsm.signTrust(trust,operatorSignatureSubList);
+        Trust predecessorTrust = getTrustById(trust.getTrustContent().getPredecessorIdentifier(), TRUST_LIST_TYPE.SIGNED);
+        if (predecessorTrust == null) {
+            System.out.println("> Error getting predecessorTrust.");
+            return false;
+        }
+
+        boolean signatureSuccess = hsm.signTrust(predecessorTrust , trust, operatorSignatureSubList);
         if (signatureSuccess) {
             trustList.add(trust);
             unsignedTrustList.remove(trust);
 
             operatorsTrustSignatureListLogging.addAll(operatorSignatureSubList);
             operatorsTrustSignatureList.removeAll(operatorSignatureSubList);
-            System.out.println("Success in signing trust.");
+            System.out.println("> Success in signing trust.");
+            return true;
         }
-        else
-            System.out.println("Failure signing trust.");
+        else {
+            System.out.println("> Failure signing trust.");
+            return false;
+        }
     }
 
     /*---------------------------------------------------------------------------------------------*/
@@ -687,6 +711,22 @@ public class GeneralManager {
         }
 
         return listUnsignedTrust;
+    }
+
+    public int getQuorum(int trustIdentifier) {
+        Trust trust = getTrustById(trustIdentifier, TRUST_LIST_TYPE.SIGNED);
+        if (trust == null)
+            return 0;
+
+        return trust.getTrustContent().getQuorumMinValue();
+    }
+
+    public List<Integer> getListDomainID() {
+        List<Integer> listDomainID = new ArrayList<>();
+        for (Domain domain : domainsList)
+            listDomainID.add(domain.domainId());
+
+        return listDomainID;
     }
 
     /*---------------------------------------------------------------------------------------------*/

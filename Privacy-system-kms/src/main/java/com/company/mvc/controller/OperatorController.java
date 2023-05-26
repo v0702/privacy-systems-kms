@@ -1,6 +1,7 @@
 package com.company.mvc.controller;
 
 import com.company.interfaces.ServerInterface;
+import com.company.keystructure.Domain;
 import com.company.mvc.model.OperatorModel;
 import com.company.mvc.view.OperatorView;
 import com.googlecode.lanterna.SGR;
@@ -90,20 +91,26 @@ public class OperatorController {
         return server.buildTrust(trustID, hsmIdsList, listOperatorName, quorum);
     }
 
-    private void operatorSignTrust() throws RemoteException {
-
+    /**
+     * Operator sign a trust for upgrading.
+     * TODO: bad practices, need fixings.
+     * @return boolean return true if success else false.
+     * @throws RemoteException exception from remote server I/O.
+     */
+    private boolean operatorSignTrust(int trustID) throws RemoteException {
+        return server.operatorSignTrust(trustID, operatorModel.getPublicKey(), operatorModel.getPrivateKey());
     }
 
-    private void signTrust() throws RemoteException {
-
+    private boolean signTrust(int trustID) throws RemoteException {
+        return server.signTrust(trustID);
     }
 
     private void createNewHardwareSecurityModule() throws RemoteException {
         server.createNewHardwareSecurityModule();
     }
 
-    private void createNewSymDomain(int trustID) throws RemoteException {
-        server.createSymDomain(trustID);
+    private int createSymDomain(int trustID) throws RemoteException {
+        return server.createSymDomain(trustID);
     }
 
     /*---------------------------------------------------------------------------------------------*/
@@ -158,6 +165,7 @@ public class OperatorController {
      * Get a List of operators in a trust.
      * @param trustIdentifier the id of the trust that we want data from.
      * @return a list of operators belonging to a particular trust.
+     * @throws RemoteException if server error.
      */
     private List<String> getTrustOperators(int trustIdentifier) throws RemoteException {
         return server.getTrustOperators(trustIdentifier);
@@ -167,9 +175,24 @@ public class OperatorController {
      * Get a List of hardware security modules identifiers in a trust.
      * @param trustIdentifier the id of the trust that we want data from.
      * @return a list of hardware security modules belonging to a particular trust.
+     * @throws RemoteException if server error.
      */
     private List<String> getTrustHsm(int trustIdentifier) throws RemoteException {
         return server.getTrustHsm(trustIdentifier);
+    }
+
+    /**
+     * Get the quorum value of a given trust.
+     * @param trustIdentifier the identifier of the trust.
+     * @return a int value of quorum.
+     * @throws RemoteException if server error.
+     */
+    private int getQuorum(int trustIdentifier) throws RemoteException {
+        return server.getQuorum(trustIdentifier);
+    }
+
+    private List<Integer> getListDomainID() throws RemoteException {
+        return server.getListDomainID();
     }
 
     /*---------------------------------------------------------------------------------------------*/
@@ -330,22 +353,16 @@ public class OperatorController {
 
         Button buttonOperatorSignTrust = new Button("Operator sign trust", () -> {
             operatorView.showWindow(this.getUnsignedTrustPanel());
-            // TODO: View trusts where operator is mentioned
-            // TODO: Select it and sign it
-            // TODO: Send signature
         });
         panel.addComponent(buttonOperatorSignTrust, GridLayout.createHorizontallyFilledLayoutData(2));
 
         Button buttonSignTrust = new Button("Sign trust (HSM)", () -> {
-            // TODO: View trusts where operator is mentioned
-            // TODO: Get it
-            // TODO: Sign it
-            // TODO: Send signature
+            operatorView.showWindow(this.getUnsignedTrust2Panel());
         });
         panel.addComponent(buttonSignTrust, GridLayout.createHorizontallyFilledLayoutData(2));
 
         Button buttonReturn = new Button("Return", () -> {
-            operatorView.showWindow(menuPanel());
+            operatorView.showWindow(this.menuPanel());
         });
         panel.addComponent(buttonReturn, GridLayout.createHorizontallyFilledLayoutData(2));
 
@@ -377,20 +394,21 @@ public class OperatorController {
         }
         for (int trustID : listTrustIdentifiers)
             radioBoxList.addItem(trustID);
-        panel.addComponent(radioBoxList, GridLayout.createHorizontallyFilledLayoutData(3));
+        panel.addComponent(radioBoxList, GridLayout.createHorizontallyFilledLayoutData(2));
 
         Button buttonCreateNewDomain = new Button("Create new symmetric domain", () -> {
             try {
-                int domainID = server.createSymDomain(radioBoxList.getCheckedItem());
+                int domainID = this.createSymDomain(radioBoxList.getCheckedItem());
                 if (domainID == -1)
                     operatorView.showMessageBox("Error","Domain was not created.");
                 else
                     operatorView.showMessageBox("Information","Domain was created with id: "+ domainID);
+                operatorView.showWindow(menuPanel());
             } catch (RemoteException e) {
                 operatorView.showMessageBox("Error", "Server error.");
             }
         });
-        panel.addComponent(buttonCreateNewDomain, GridLayout.createHorizontallyFilledLayoutData(1));
+        panel.addComponent(buttonCreateNewDomain, GridLayout.createHorizontallyFilledLayoutData(2));
 
         Button buttonReturn = new Button("Return", () -> {
             operatorView.showWindow(menuPanel());
@@ -423,7 +441,7 @@ public class OperatorController {
         Button buttonViewTrust = new Button("View trusts", () -> {
             try {
                 List<Integer> listTrustID = this.getListTrustID();
-                Table<String> table = new Table<>("Trust ID","Operators", "HSM IDs");
+                Table<String> table = new Table<>("Trust ID","Operators", "HSM IDs", "Quorum");
 
                 for (Integer trustID : listTrustID) {
                     List<String> listTrustOperators = this.getTrustOperators(trustID);
@@ -436,7 +454,8 @@ public class OperatorController {
                     for (String hsmID : listTrustHsmID)
                         stringBuilderHsm.append(hsmID).append("\n");
 
-                    table.getTableModel().addRow(trustID.toString(), stringBuilderNames.toString(), stringBuilderHsm.toString());
+                    String quorum = String.valueOf(this.getQuorum(trustID));
+                    table.getTableModel().addRow(trustID.toString(), stringBuilderNames.toString(), stringBuilderHsm.toString(), quorum);
                 }
                 Panel panelTable = new Panel();
                 panelTable.addComponent(table);
@@ -457,6 +476,26 @@ public class OperatorController {
         panel.addComponent(buttonViewTrust, GridLayout.createHorizontallyFilledLayoutData(3));
 
         Button buttonViewDomains = new Button("View domains", () -> {
+            try {
+                List<Integer> listDomainID = this.getListDomainID();
+                Table<String> table = new Table<>("Domain ID");
+
+                for (int domainID : listDomainID)
+                    table.getTableModel().addRow(String.valueOf(domainID));
+                Panel panelTable = new Panel();
+                panelTable.addComponent(table);
+
+                Button buttonReturn = new Button("Return", () -> {
+                    operatorView.closeSecondaryWindow();
+                    operatorView.showWindow(viewMenuPanel());
+                });
+                panelTable.addComponent(buttonReturn);
+
+                operatorView.showSecondaryWindow(panelTable);
+
+            }catch (RemoteException exception) {
+                operatorView.showMessageBox("Error", "Server error.");
+            }
 
         });
         panel.addComponent(buttonViewDomains, GridLayout.createHorizontallyFilledLayoutData(3));
@@ -512,6 +551,8 @@ public class OperatorController {
         panel.addComponent(checkBoxListOperator, GridLayout.createHorizontallyFilledLayoutData(2));
         //----------------
         //----Quorum------
+        Label labelQuorum = new Label("Type quorum value for new trust:");
+        panel.addComponent(labelQuorum, GridLayout.createHorizontallyFilledLayoutData(4));
         TextBox textBoxTypeQuorum = new TextBox("1");
         panel.addComponent(textBoxTypeQuorum, GridLayout.createHorizontallyFilledLayoutData(4));
         //-----------------
@@ -559,7 +600,6 @@ public class OperatorController {
         return panel;
     }
 
-    //TODO: set quorum
     private Panel updateTrustPanel(AtomicInteger selectedTrust) {
         Panel panel = new Panel(new GridLayout(4));
         GridLayout gridLayout = (GridLayout) panel.getLayoutManager();
@@ -608,7 +648,15 @@ public class OperatorController {
         //-----------------
 
         //----Quorum------
-        TextBox textBoxTypeQuorum = new TextBox("1");
+        Label labelQuorum = new Label("Type quorum value for new trust:");
+        panel.addComponent(labelQuorum, GridLayout.createHorizontallyFilledLayoutData(6));
+        int quorumTrust = 0;
+        try {
+            quorumTrust = getQuorum(selectedTrust.get());
+        } catch (RemoteException exception) {
+            operatorView.showMessageBox("Error", "Server error.");
+        }
+        TextBox textBoxTypeQuorum = new TextBox(String.valueOf(quorumTrust));
         panel.addComponent(textBoxTypeQuorum, GridLayout.createHorizontallyFilledLayoutData(6));
         //-----------------
 
@@ -630,7 +678,7 @@ public class OperatorController {
                     operatorView.showMessageBox("Information", "Success building trust.");
                 else
                     operatorView.showMessageBox("Error", "Failure building trust.");
-
+                operatorView.showWindow(menuPanel());
             } catch (Exception exception) {
                 operatorView.showMessageBox("Error", "Server error.");
                 System.err.println(exception.getMessage());
@@ -652,6 +700,64 @@ public class OperatorController {
         gridLayout.setHorizontalSpacing(4);
 
 
+        //TODO: View information from trust
+        /*try {
+        } catch (Exception exception) {
+            operatorView.showMessageBox("Error", "Server error.");
+        }*/
+
+        Button buttonOperatorSignTrust = new Button("Confirm", () -> {
+            try {
+                boolean status = this.operatorSignTrust(selectedTrust.get());
+                if (status)
+                    operatorView.showMessageBox("Information", "Success.");
+                else
+                    operatorView.showMessageBox("Information", "Failure signing.");
+            } catch (Exception exception) {
+                operatorView.showMessageBox("Error", "Server error.");
+            }
+            operatorView.showWindow(menuPanel());
+        });
+        panel.addComponent(buttonOperatorSignTrust, GridLayout.createHorizontallyFilledLayoutData(4));
+
+        Button buttonReturn = new Button("Return", () ->{
+            operatorView.showWindow(menuPanel());
+        });
+        panel.addComponent(buttonReturn, GridLayout.createHorizontallyFilledLayoutData(4));
+
+        return panel;
+    }
+
+    private Panel signTrustPanel(AtomicInteger selectedTrust) {
+        Panel panel = new Panel(new GridLayout(4));
+        GridLayout gridLayout = (GridLayout) panel.getLayoutManager();
+        gridLayout.setHorizontalSpacing(4);
+
+
+        //TODO: View information from trust
+        /*try {
+        } catch (Exception exception) {
+            operatorView.showMessageBox("Error", "Server error.");
+        }*/
+
+        Button buttonSignTrust = new Button("Confirm", () -> {
+            try {
+                boolean status = this.signTrust(selectedTrust.get());
+                if (status)
+                    operatorView.showMessageBox("Information", "Success.");
+                else
+                    operatorView.showMessageBox("Information", "Failure signing.");
+            } catch (Exception exception) {
+                operatorView.showMessageBox("Error", "Server error.");
+            }
+            operatorView.showWindow(menuPanel());
+        });
+        panel.addComponent(buttonSignTrust, GridLayout.createHorizontallyFilledLayoutData(4));
+
+        Button buttonReturn = new Button("Return", () ->{
+            operatorView.showWindow(menuPanel());
+        });
+        panel.addComponent(buttonReturn, GridLayout.createHorizontallyFilledLayoutData(4));
 
         return panel;
     }
@@ -715,6 +821,40 @@ public class OperatorController {
         Button buttonReturn = new Button("Get", () ->{
             selectedTrust.set(radioBoxList.getCheckedItem());
             operatorView.showWindow(operatorSignTrustPanel(selectedTrust));
+        });
+        panel.addComponent(buttonReturn, GridLayout.createHorizontallyFilledLayoutData(3));
+        //---------------------
+
+        return panel;
+    }
+
+    //TODO: yeah, no. Need to fix.
+    private Panel getUnsignedTrust2Panel() {
+        Panel panel = new Panel(new GridLayout(2));
+        GridLayout gridLayout = (GridLayout) panel.getLayoutManager();
+        gridLayout.setHorizontalSpacing(3);
+
+        //------Select Trust------
+        Label labelTrustRadioBoxTitle = new Label("Select trust:");
+        panel.addComponent(labelTrustRadioBoxTitle, GridLayout.createHorizontallyFilledLayoutData(3));
+        RadioBoxList<Integer> radioBoxList = new RadioBoxList<>();
+
+        List<Integer> listTrustIdentifiers = new ArrayList<>();
+        try {
+            listTrustIdentifiers = this.getListUnsignedTrustID();
+        } catch (RemoteException exception) {
+            operatorView.showMessageBox("Error", "Server error.");
+        }
+
+        for (int trustID : listTrustIdentifiers) {
+            radioBoxList.addItem(trustID);
+        }
+        panel.addComponent(radioBoxList, GridLayout.createHorizontallyFilledLayoutData(3));
+
+        AtomicInteger selectedTrust = new AtomicInteger(-1);
+        Button buttonReturn = new Button("Get", () ->{
+            selectedTrust.set(radioBoxList.getCheckedItem());
+            operatorView.showWindow(signTrustPanel(selectedTrust));
         });
         panel.addComponent(buttonReturn, GridLayout.createHorizontallyFilledLayoutData(3));
         //---------------------

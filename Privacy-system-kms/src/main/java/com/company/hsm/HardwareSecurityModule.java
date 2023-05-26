@@ -6,6 +6,7 @@ import com.company.utility.CryptographyOperations;
 import javax.crypto.SecretKey;
 import java.security.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -179,7 +180,7 @@ public class HardwareSecurityModule extends CryptographyOperations {
      *                                the operators signatures of the trustContent
      * @return true if successful or false if not
      */
-    public boolean signTrust(Trust trust, List<OperatorSignature> operatorsSignaturesList) {
+    public boolean signTrust(Trust previousTrust, Trust trust, List<OperatorSignature> operatorsSignaturesList) {
         byte[] hash = hashSum(objectToByte(trust.getTrustContent()), HASH_ALGORITHM_1);
 
         boolean publicKeysMatch = true;
@@ -206,8 +207,28 @@ public class HardwareSecurityModule extends CryptographyOperations {
             else if(!checkSignature(hash, signature.signature(), signature.publicKey())) {
                     // leave if there is a signature that is not valid
                     allSignaturesValid = false;
-                }
+            }
         }
+
+        //Check quorum
+        if (operatorsSignaturesList.size() < trust.getTrustContent().getQuorumMinValue()) {
+            // leave if amount of signatures is not enough.
+            return false;
+        }
+
+        //Validate previous trusts and validate hash
+        verifyTrustSignature(previousTrust);
+
+        byte[] previousTrustHash = hashSum(objectToByte(previousTrust), HASH_ALGORITHM_1);
+        byte[] predecessorHash = trust.getTrustContent().getPredecessorHash();
+
+        boolean status = Arrays.equals(predecessorHash,previousTrustHash);
+        if (!status) {
+            //TODO: temporary
+            System.out.println("ERROR WITH HASH.");
+            return false;
+        }
+
 
         // if signatures are valid and public keys are valid then we can sign trustContent
         // and set store signature in trust
@@ -275,7 +296,7 @@ public class HardwareSecurityModule extends CryptographyOperations {
 
         byte[] predecessorHash = this.hashSum(objectToByte(trust),CryptographyOperations.HASH_ALGORITHM_1);
 
-        TrustContent trustContent = new TrustContent(newHsmPublicKeysList,newOperatorPublicKeysList, quorum,predecessorHash,oldTrustContent.getId());
+        TrustContent trustContent = new TrustContent(newHsmPublicKeysList,newOperatorPublicKeysList, quorum,predecessorHash, oldTrustContent.getId());
 
         return new Trust(trustContent,null);
     }

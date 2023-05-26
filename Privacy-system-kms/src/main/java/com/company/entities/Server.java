@@ -1,5 +1,6 @@
 package com.company.entities;
 
+import com.company.keystructure.Domain;
 import com.company.utility.GeneralManager;
 import com.company.hsm.HardwareSecurityModule;
 import com.company.interfaces.ServerInterface;
@@ -112,6 +113,15 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         return generalManager.getTrustHsm(trustIdentifier);
     }
 
+    public int getQuorum(int trustIdentifier) throws RemoteException {
+        System.out.println("Getting quorum.");
+        return generalManager.getQuorum(trustIdentifier);
+    }
+
+    public List<Integer> getListDomainID() throws RemoteException {
+        return generalManager.getListDomainID();
+    }
+
     /*---------------------------------------------------------------------------------------------*/
     /*-------------------------------------------Operations----------------------------------------*/
 
@@ -130,13 +140,14 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
         return generalManager.buildTrust(trustID,hsmIdsList,listOperatorName, quorum);
     }
 
-    public void signTrust(int trustId) {
+    public boolean signTrust(int trustId) {
         System.out.println(">Hsm sign trust");
-        generalManager.signTrust(trustId);
+        return generalManager.signTrust(trustId);
     }
 
-    public void operatorSignTrust(int trustID, PrivateKey privateKey) throws RemoteException {
-        generalManager.operatorSignTrust(trustID, privateKey);
+    public boolean operatorSignTrust(int trustID, PublicKey publicKey, PrivateKey privateKey) throws RemoteException {
+        System.out.println(">Operator is signing a trust");
+        return generalManager.operatorSignTrust(trustID, publicKey, privateKey);
     }
 
     public boolean verifyTrustSignature(int trustId) {
@@ -178,6 +189,7 @@ public class Server extends UnicastRemoteObject implements ServerInterface {
 
 
     public KeyPair generateKeyPair() throws RemoteException {
+        System.out.println(">Generating key pair");
         return generalManager.generateKeyPairWithHSM();
     }
 
